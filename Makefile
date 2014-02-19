@@ -13,7 +13,7 @@ MYHOST      := $(shell hostname -s)
 ########################################################################
 EXECFILE    := g2prec
 LIBNAME     := g2prec
-USERDICT    := $(LIBNAME)_Dict
+USERDICT    := $(LIBNAME)_dict
 
 ########################################################################
 SRCDIR      := src
@@ -176,7 +176,7 @@ $(OBJDIR)/Main.o: Main.cc
 	@echo Compiling $< ......
 	@$(CXX) -c $< -o $@  $(CXXFLAGS)
 
-$(USERDICT).cxx: $(filter-out include/G2PConf.hh,$(HEADERS)) $(LIBNAME)_LinkDef.h
+$(USERDICT).cxx: $(filter-out include/G2PConf.hh,$(HEADERS)) $(LIBNAME)_linkdef.h
 		@echo "Generating dictionary $(USERDICT).cxx ......"
 		@$(ROOTSYS)/bin/rootcint -f $@ -c $(INCDIRS) $^
 
