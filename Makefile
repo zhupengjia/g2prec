@@ -11,7 +11,9 @@ USER        := $(shell whoami)
 MYHOST      := $(shell hostname -s)
 
 ########################################################################
-EXECFILE    := G2PRec
+EXECFILE    := g2prec
+LIBNAME     := g2prec
+USERDICT    := $(LIBNAME)_Dict
 
 ########################################################################
 SRCDIR      := src
@@ -21,6 +23,7 @@ OBJDIR      := obj.$(ARCH)
 ########################################################################
 # Compiler
 AR          := ar
+CC          := gcc
 CXX         := g++
 FF          := gfortran
 LD          := g++
@@ -33,14 +36,14 @@ else
     MODE    := -m64
 endif
 INCDIRS     := $(patsubst %,-I%,$(subst :, ,$(INCDIR)))
-CFLAGS      := -Wall -fPIC -O3 -g $(MODE)
-CXXFLAGS    := -Wall -fPIC -O3 -g $(MODE)
-FFLAGS      := -Wall -fPIC -O3 -g $(MODE)
+CFLAGS      := -Wall -fPIC -O3 -g $(MODE) $(INCDIRS)
+CXXFLAGS    := -Wall -fPIC -O3 -g $(MODE) $(INCDIRS)
+FFLAGS      := -Wall -fPIC -O3 -g $(MODE) $(INCDIRS)
 ifeq ($(MYOS),Darwin)
 #in Darwin, do not use -fno-leading-underscore
     FFLAGS  += -fno-second-underscore -fno-automatic -fbounds-check \
-               -fno-range-check -funroll-all-loops -fdollar-ok \
-               -ffixed-line-length-none -fno-range-check
+               -funroll-all-loops -fdollar-ok -ffixed-line-length-none \
+               -fno-range-check
 else
     FFLAGS  += -fno-leading-underscore -fno-second-underscore \
                -fno-automatic -fbounds-check -funroll-all-loops \
@@ -68,23 +71,19 @@ DEPS        := $(subst .o,.d,$(OBJS))
 SYSLIBS     := -lstdc++ -lgfortran
 
 ifdef LIBCONFIG
-INCDIRS     += -I$(LIBCONFIG)/include
-SYSLIBS     += -L$(LIBCONFIG)/lib -lconfig
+CXXFLAGS    += -I$(LIBCONFIG)/include
+SYSLIBS     += -L$(LIBCONFIG)/lib -lconfig++
 else
 $(error $$LIBCONFIG environment variable not defined)
 endif
 
 ifdef ANALYZER
 ANADIRS     := $(wildcard $(addprefix $(ANALYZER)/, src hana_decode hana_scaler))
-INCDIRS     += $(addprefix -I, $(ANADIRS))
+CXXFLAGS    += $(addprefix -I, $(ANADIRS))
 SYSLIBS     += -L$(ANALYZER) -lHallA -ldc -lscaler
 else
 $(error $$ANALYZER environment variable not defined)
 endif
-
-CFLAGS      += $(INCDIRS)
-CXXFLAGS    += $(INCDIRS)
-FFLAGS      += $(INCDIRS)
 
 ########################################################################
 # ROOT configure
@@ -110,7 +109,7 @@ all: exe
 $(OBJDIR)/%.d: %.c
 	@echo Making dependency for file $< ......
 	@set -e; \
-	$(CXX) $(GPPFLAGS) $(CXXFLAGS) $< | \
+	$(CC) $(GPPFLAGS) $(CFLAGS) $< | \
 	sed 's!$*\.o!$(OBJDIR)/& $@!' > $@; \
 	[ -s $@ ] || rm -f $@
 
@@ -168,18 +167,27 @@ ifneq ($(DEPS),)
 endif
 
 ########################################################################
-exe: dir $(OBJS) $(OBJDIR)/Main.o
-	@$(LD) $(LDFLAGS) -o $(EXECFILE) $(OBJDIR)/Main.o $(OBJS) $(LIBS)
+exe: dir $(OBJS) $(OBJDIR)/Main.o $(OBJDIR)/$(USERDICT).o
+	@$(LD) $(LDFLAGS) -o $(EXECFILE) $(OBJDIR)/Main.o \
+               $(OBJDIR)/$(USERDICT).o $(OBJS) $(LIBS)
 	@echo "Linking $(EXECFILE) ...... done!"
 
 $(OBJDIR)/Main.o: Main.cc
 	@echo Compiling $< ......
 	@$(CXX) -c $< -o $@  $(CXXFLAGS)
 
+$(USERDICT).cxx: $(filter-out include/G2PConf.hh,$(HEADERS)) $(LIBNAME)_LinkDef.h
+		@echo "Generating dictionary $(USERDICT).cxx ......"
+		@$(ROOTSYS)/bin/rootcint -f $@ -c $(INCDIRS) $^
+
+$(OBJDIR)/$(USERDICT).o: $(USERDICT).cxx
+	@echo Compiling $< ......
+	@$(CXX) -c $< -o $@  $(CXXFLAGS)
+
 ########################################################################
 $(OBJDIR)/%.o: %.c
 	@echo Compiling $< ......
-	@$(CXX) -c $< -o $@  $(CXXFLAGS)
+	@$(CC) -c $< -o $@  $(CFLAGS)
 
 $(OBJDIR)/%.o: %.C
 	@echo Compiling $< ......
@@ -215,7 +223,7 @@ dir:
 ########################################################################
 clean: dir
 	@rm -f $(OBJDIR)/*
-	@rm -f $(EXECFILE)
+	@rm -f $(EXECFILE) $(USERDICT).cxx $(USERDICT).h
 	@rm -f *~ *# */*~ */*#
 
 test:

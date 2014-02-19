@@ -18,6 +18,8 @@
 
 obj.*
 
+*_Dict.*
+
 *.bak
 *.root
 *.dat
