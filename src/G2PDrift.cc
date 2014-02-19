@@ -56,7 +56,7 @@ G2PDrift::~G2PDrift()
 {
     // Destructor
 
-    delete[] pField;
+    delete pField;
     pField = NULL;
 }
 
@@ -71,7 +71,7 @@ double G2PDrift::Drift(const double* x, const double* p, double zf, double *xout
 
     double result = (this->*pfDriftHCS)(x, p, zf, xout, pout);
 
-    if (fDebug > 2) {
+    if (fDebug > 1) {
         Info(here, "%10.3e %10.3e %10.3e %10.3e %10.3e %10.3e -> %10.3e %10.3e %10.3e %10.3e %10.3e %10.3e", xx[0], xx[1], xx[2], pp[0], pp[1], pp[2], xout[0], xout[1], xout[2], pout[0], pout[1], pout[2]);
     }
 
@@ -88,7 +88,7 @@ double G2PDrift::Drift(const double* x, double z_tr, double p, double angle, dou
 
     double result = (this->*pfDriftTCS)(x, z_tr, p, angle, zf_tr, xout);
 
-    if (fDebug > 2) {
+    if (fDebug > 1) {
         Info(here, "%10.3e %10.3e %10.3e %10.3e -> %10.3e %10.3e %10.3e %10.3e", xx[0], xx[1], xx[2], xx[3], xout[0], xout[1], xout[2], xout[3]);
     }
 
@@ -420,7 +420,7 @@ void G2PDrift::NystromRK4(const double* x, const double* dxdt, double step, doub
     xo[4] *= normF;
     xo[5] *= normF;
 
-    if (fDebug > 4) {
+    if (fDebug > 3) {
         Info(here, " err: %10.3e %10.3e %10.3e %10.3e %10.3e %10.3e", err[0] / fabs(xo[0] - x[0]), err[1] / fabs(xo[1] - x[1]), err[2] / fabs(xo[2] - x[2]), err[3] / fabs(xo[3] - x[3]), err[4] / fabs(xo[4] - x[4]), err[5] / fabs(xo[5] - x[5]));
     }
 }
@@ -464,7 +464,7 @@ void G2PDrift::ComputeRHS(const double* x, double* dxdt)
     dxdt[4] = (x[5] * fField[0] - fField[2] * x[3]) * fCof;
     dxdt[5] = (x[3] * fField[1] - fField[0] * x[4]) * fCof;
 
-    if (fDebug > 4) {
+    if (fDebug > 3) {
         Info(here, "   x: %10.3e %10.3e %10.3e %10.3e %10.3e %10.3e", x[0], x[1], x[2], x[3], x[4], x[5]);
         Info(here, "dxdt: %10.3e %10.3e %10.3e %10.3e %10.3e %10.3e", dxdt[0], dxdt[1], dxdt[2], dxdt[3], dxdt[4], dxdt[5]);
     }
@@ -474,12 +474,19 @@ int G2PDrift::Configure()
 {
     static const char* const here = "Configure()";
 
+    if (G2PAppBase::Configure() != 0) return -1;
+
     if (!gConfig->lookupValue("field.ratio", fFieldRatio))
         Warning(here, "Cannot find setting \"field.ratio\", using default value ......");
 
     if (!(gConfig->lookupValue("particle.charge", fQ)
             && gConfig->lookupValue("particle.mass", fM0)))
         Warning(here, "Cannot find setting \"particle\", using default value ......");
+
+    if (fDebug > 0) {
+        Info(here, "fQ       \t= %le", fQ);
+        Info(here, "fM0      \t= %le", fM0);
+    }
 
     return 0;
 }

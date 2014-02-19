@@ -48,29 +48,36 @@ G2PRec::~G2PRec()
 {
     // Destructor
 
-    delete[] pDrift;
+    delete pDrift;
     pDrift = NULL;
 }
 
-int G2PRec::Process(const double* V5bpm_lab, const double* V5tp_tr, double* V5rec_tr)
+int G2PRec::Process(const float* V5bpm_bpm, const double* V5tp_tr, double * V5rec_tr, double* V5rec_lab)
 {
     static const char* const here = "Process()";
 
-    if (fDebug > 2) Info(here, " ");
+    fV5bpm_bpm[0] = V5bpm_bpm[0] / 1000.0;
+    fV5bpm_bpm[1] = V5bpm_bpm[1];
+    fV5bpm_bpm[2] = V5bpm_bpm[2] / 1000.0;
+    fV5bpm_bpm[3] = V5bpm_bpm[3];
+    fV5bpm_bpm[4] = V5bpm_bpm[4] / 1000.0;
 
-    fV5tpmat_tr[0] = GetEffBPMX(V5bpm_lab, V5tp_tr);
+    fV5tpmat_tr[0] = V5tp_tr[0];
     fV5tpmat_tr[1] = V5tp_tr[1];
     fV5tpmat_tr[2] = V5tp_tr[2];
     fV5tpmat_tr[3] = V5tp_tr[3];
     fV5tpmat_tr[4] = V5tp_tr[4];
 
+    //fV5tpmat_tr[0] = GetEffBPMX();
+
 #ifdef USE_BPMY
-    double x, y, z;
-    HCS2TCS(V5bpm_lab[0], V5bpm_lab[2], V5bpm_lab[4], fHRSAngle, x, y, z);
-    fV5tpmat_tr[2] = y;
+    double V3temp_tr[3];
+    HCS2TCS(fV5bpm_bpm[0], fV5bpm_bpm[2], fV5bpm_bpm[4], fHRSAngle, V3temp_tr[0], V3temp_tr[1], V3temp_tr[2]);
+    fV5tpmat_tr[2] = V3temp_tr[1];
 #endif
 
-    if (fDebug > 1) {
+    if (fDebug > 0) {
+        Info(here, "bpm_bpm   : %10.3e %10.3e %10.3e %10.3e %10.3e", fV5bpm_bpm[0], fV5bpm_bpm[1], fV5bpm_bpm[2], fV5bpm_bpm[3], fV5bpm_bpm[4]);
         Info(here, "tpmat_tr  : %10.3e %10.3e %10.3e %10.3e %10.3e", fV5tpmat_tr[0], fV5tpmat_tr[1], fV5tpmat_tr[2], fV5tpmat_tr[3], fV5tpmat_tr[4]);
     }
 
@@ -79,19 +86,50 @@ int G2PRec::Process(const double* V5bpm_lab, const double* V5tp_tr, double* V5re
     fV5sieveproj_tr[3] = fV5tpmat_tr[3];
     fV5sieveproj_tr[4] = fV5tpmat_tr[4];
 
-    if (fDebug > 1) {
+    if (fDebug > 0) {
         Info(here, "sivproj_tr: %10.3e %10.3e %10.3e %10.3e %10.3e", fV5sieveproj_tr[0], fV5sieveproj_tr[1], fV5sieveproj_tr[2], fV5sieveproj_tr[3], fV5sieveproj_tr[4]);
     }
 
-    pDrift->Drift(fV5sieveproj_tr, fSieveZ, fHRSMomentum, fHRSAngle, fRecZ, fV5tprec_tr);
+    pDrift->Drift(fV5sieveproj_tr, fSieveZ, fHRSMomentum, fHRSAngle, 0.0, fV5tprec_tr);
+    TCS2HCS(fV5tprec_tr[0], fV5tprec_tr[2], 0.0, fHRSAngle, fV5tprec_lab[0], fV5tprec_lab[2], fV5tprec_lab[4]);
+    TCS2HCS(fV5tprec_tr[1], fV5tprec_tr[3], fHRSAngle, fV5tprec_lab[1], fV5tprec_lab[3]);
 
-    if (fDebug > 1) {
+    double x[3] = {fV5tprec_lab[0], fV5tprec_lab[2], fV5tprec_lab[4]};
+    double p[3] = {fHRSMomentum * (1 + fV5tprec_tr[4]) * sin(fV5tprec_lab[1]) * cos(fV5tprec_lab[3]),
+        fHRSMomentum * (1 + fV5tprec_tr[4]) * sin(fV5tprec_lab[1]) * sin(fV5tprec_lab[3]),
+        fHRSMomentum * (1 + fV5tprec_tr[4]) * cos(fV5tprec_lab[1])};
+    pDrift->Drift(x, p, fRecZ, x, p);
+    double temp;
+    fV5tprec_lab[0] = x[0];
+    fV5tprec_lab[1] = acos(p[2] / (fHRSMomentum * (1 + fV5tprec_tr[4])));
+    fV5tprec_lab[2] = x[1];
+    fV5tprec_lab[3] = atan2(p[1], p[0]);
+    fV5tprec_lab[4] = x[2];
+    HCS2TCS(x[0], x[1], x[2], fHRSAngle, fV5tprec_tr[0], fV5tprec_tr[2], temp);
+    HCS2TCS(fV5tprec_lab[1], fV5tprec_lab[2], fHRSAngle, fV5tprec_tr[1], fV5tprec_tr[3]);
+
+    if (fDebug > 0) {
         Info(here, "tprec_tr  : %10.3e %10.3e %10.3e %10.3e %10.3e", fV5tprec_tr[0], fV5tprec_tr[1], fV5tprec_tr[2], fV5tprec_tr[3], fV5tprec_tr[4]);
+        Info(here, "tprec_lab : %10.3e %10.3e %10.3e %10.3e %10.3e", fV5tprec_lab[0], fV5tprec_lab[1], fV5tprec_lab[2], fV5tprec_lab[3], fV5tprec_lab[4]);
     }
 
-    for (int i = 0; i < 5; i++) V5rec_tr[i] = fV5tprec_tr[i];
+    for (int i = 0; i < 5; i++) {
+        V5rec_tr[i] = fV5tprec_tr[i];
+        V5rec_lab[i] = fV5tprec_lab[i];
+    }
 
     return 0;
+}
+
+void G2PRec::SetHRSMomentum(double p)
+{
+    static const char* const here = "Configure()";
+
+    fHRSMomentum = p;
+
+    if (fDebug > 0) {
+        Info(here, "fHRSMomentum\t= %le", fHRSMomentum);
+    }
 }
 
 int G2PRec::Initialize()
@@ -103,12 +141,14 @@ int G2PRec::Initialize()
 
 void G2PRec::Clear()
 {
+    memset(fV5bpm_bpm, 0, sizeof (fV5bpm_bpm));
     memset(fV5tpmat_tr, 0, sizeof (fV5tpmat_tr));
     memset(fV5sieveproj_tr, 0, sizeof (fV5sieveproj_tr));
     memset(fV5tprec_tr, 0, sizeof (fV5tprec_tr));
+    memset(fV5tprec_lab, 0, sizeof (fV5tprec_lab));
 }
 
-double G2PRec::GetEffBPMX(const double* V5bpm_lab, const double* V5tp_tr)
+double G2PRec::GetEffBPMX()
 {
     static const char* const here = "GetEffBPMX()";
 
@@ -131,18 +171,18 @@ double G2PRec::GetEffBPMX(const double* V5bpm_lab, const double* V5tp_tr)
     //
 
     double V3bpm_tr[5];
-    HCS2TCS(V5bpm_lab[0], V5bpm_lab[2], V5bpm_lab[4], fHRSAngle, V3bpm_tr[0], V3bpm_tr[1], V3bpm_tr[2]);
+    HCS2TCS(fV5bpm_bpm[0], fV5bpm_bpm[2], fV5bpm_bpm[4], fHRSAngle, V3bpm_tr[0], V3bpm_tr[1], V3bpm_tr[2]);
 
     double xbpm_tr = V3bpm_tr[0];
     double xeffbpm_tr = xbpm_tr;
 
     if (fFieldRatio > 1e-5) {
-        double p = (1 + V5tp_tr[4]) * fHRSMomentum;
+        double p = (1 + fV5tpmat_tr[4]) * fHRSMomentum;
         if (fFieldRatio < 0.75) xeffbpm_tr = xbpm_tr - (3.14345 / p + 0.0183611) / 1000 * fFieldRatio / 0.5;
         else xeffbpm_tr = xbpm_tr - (6.11766 / p + 0.14139) / 1000 * fFieldRatio / 1.0;
     }
 
-    if (fDebug > 2) {
+    if (fDebug > 1) {
         Info(here, "%10.3e", xeffbpm_tr);
     }
 
@@ -152,6 +192,8 @@ double G2PRec::GetEffBPMX(const double* V5bpm_lab, const double* V5tp_tr)
 int G2PRec::Configure()
 {
     static const char* const here = "Configure()";
+
+    if (G2PAppBase::Configure() != 0) return -1;
 
     if (!gConfig->lookupValue("field.ratio", fFieldRatio))
         Warning(here, "Cannot find setting \"field.ratio\", using default value ......");
@@ -164,6 +206,12 @@ int G2PRec::Configure()
 
     if (!gConfig->lookupValue("rec.z", fRecZ))
         Warning(here, "Cannot find setting \"rec.z\", using default value ......");
+
+    if (fDebug > 0) {
+        Info(here, "fHRSAngle\t= %le", fHRSAngle / kDEG);
+        Info(here, "fSieveZ  \t= %le", fSieveZ);
+        Info(here, "fRecZ    \t= %le", fRecZ);
+    }
 
     return 0;
 }

@@ -383,6 +383,8 @@ int G2PField::Configure()
 {
     static const char* const here = "Configure()";
 
+    if (G2PAppBase::Configure() != 0) return -1;
+
     if (!gConfig->lookupValue("field.ratio", fRatio))
         Warning(here, "Cannot find setting \"field.ratio\", using default value ......");
 
@@ -395,6 +397,12 @@ int G2PField::Configure()
             && gConfig->lookupValue("field.angle.beta", fEulerAngle[1])
             && gConfig->lookupValue("field.angle.gamma", fEulerAngle[2])))
         Warning(here, "Cannot find setting \"field.angle\", using default value ......");
+
+    if (fDebug > 0) {
+        Info(here, "fRatio   \t= %le", fRatio);
+        Info(here, "fOrigin  \t= %le %le %le", fOrigin[0], fOrigin[1], fOrigin[2]);
+        Info(here, "fEulerAngle\t= %le %le %le", fEulerAngle[0] / kDEG, fEulerAngle[1] / kDEG, fEulerAngle[2] / kDEG);
+    }
 
     return 0;
 }

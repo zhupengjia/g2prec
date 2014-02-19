@@ -21,13 +21,15 @@ public:
     G2PRec();
     virtual ~G2PRec();
 
-    virtual int Process(const double* V5bpm_lab, const double* V5tp_tr, double* V5rec_tr);
+    virtual int Process(const float* V5bpm_bpm, const double* V5tp_tr, double* V5rec_tr, double* V5rec_lab);
+
+    void SetHRSMomentum(double p);
 
 protected:
     virtual int Initialize();
     virtual void Clear();
 
-    double GetEffBPMX(const double* V5bpm_lab, const double* V5fp);
+    double GetEffBPMX();
 
     virtual int Configure();
 
@@ -38,10 +40,13 @@ protected:
     double fSieveZ;
     double fRecZ;
 
+    double fV5bpm_bpm[5];
+
     double fV5tpmat_tr[5];
     double fV5sieveproj_tr[5];
 
     double fV5tprec_tr[5];
+    double fV5tprec_lab[5];
 
     G2PDrift* pDrift;
 

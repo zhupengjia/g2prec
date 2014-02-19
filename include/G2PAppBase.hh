@@ -43,7 +43,7 @@ protected:
     virtual void FCS2DCS(const double* V5_fp, double angle, double* V5_det);
     virtual void DCS2FCS(const double* V5_det, double angle, double* V5_fp);
 
-    virtual int Configure() = 0;
+    virtual int Configure();
 
     // General status variables
     int fDebug;

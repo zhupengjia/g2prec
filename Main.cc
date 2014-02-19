@@ -39,11 +39,12 @@ using namespace std;
 using namespace libconfig;
 
 Config* gConfig = new Config();
+G2PRec* gRec = NULL;
 
 bool isexist(const char* filename);
 void usage(int argc, char** argv);
 
-int Configure(int run, const char* dbdir, int debug)
+int Configure(int run, const char* dbdir)
 {
     static const char* const here = "Main::Configure()";
 
@@ -56,6 +57,11 @@ int Configure(int run, const char* dbdir, int debug)
     t->GetEntry(0);
 
     int label = int(event->GetHeader()->GetEvtTime() / 1.0e6);
+
+    delete event;
+    event = NULL;
+
+    f->Close();
 
     void* dirp = gSystem->OpenDirectory(dbdir);
     if (dirp == NULL) return -1;
@@ -97,14 +103,121 @@ int Configure(int run, const char* dbdir, int debug)
         } else return -1;
     }
 
+    gRec = new G2PRec();
 
+    const char* rundbfile = Form("%s/db_rec.dat", dbdir);
+    if (!isexist(rundbfile)) {
+        return -1;
+    }
+
+    FILE *fp = fopen(rundbfile, "r");
+
+    int id = 0;
+    double p = 0.0;
+    bool found = false;
+    while (!feof(fp)) {
+        fscanf(fp, "%d%le", &id, &p);
+        if (id == run) {
+            gRec->SetHRSMomentum(p);
+            found = true;
+            break;
+        }
+    }
+    if (!found) return -1;
+
+    fclose(fp);
 
     return 0;
 }
 
-int Insert()
+int Insert(int run)
 {
-    G2PRec * run = new G2PRec();
+    static const char* const here = "Main::Insert()";
+
+    int fDebug;
+    gConfig->lookupValue("debug", fDebug);
+
+    const char* arm = "R";
+    if (run < 20000) arm = "L";
+
+    const char* filename = Form("g2p_%d.root", run);
+    int inc = 0;
+
+    while (isexist(filename)) {
+        TFile *f = new TFile(filename, "UPDATE");
+        printf("Opening existed rootfile %s ...\n", filename);
+
+        TTree *t = (TTree *) f->Get("T");
+        t->SetMaxTreeSize(2000000000);
+
+        float fV5bpm_bpm[5];
+        float fBPMAvail;
+        double fV5tp_tr[5];
+        THaEvent *event = new THaEvent();
+
+        t->SetBranchAddress("Event_Branch", &event);
+
+        t->SetBranchAddress(Form("%srb.tgt_0_x", arm), &fV5bpm_bpm[0]);
+        t->SetBranchAddress(Form("%srb.tgt_0_theta", arm), &fV5bpm_bpm[1]);
+        t->SetBranchAddress(Form("%srb.tgt_0_y", arm), &fV5bpm_bpm[2]);
+        t->SetBranchAddress(Form("%srb.tgt_0_phi", arm), &fV5bpm_bpm[3]);
+        t->SetBranchAddress(Form("%srb.tgt_0_z", arm), &fV5bpm_bpm[4]);
+
+        t->SetBranchAddress(Form("%srb.bpmavail", arm), &fBPMAvail);
+
+        t->SetBranchAddress(Form("%s.gold.x", arm), &fV5tp_tr[0]);
+        t->SetBranchAddress(Form("%s.gold.th", arm), &fV5tp_tr[1]);
+        t->SetBranchAddress(Form("%s.gold.y", arm), &fV5tp_tr[2]);
+        t->SetBranchAddress(Form("%s.gold.ph", arm), &fV5tp_tr[3]);
+        t->SetBranchAddress(Form("%s.gold.dp", arm), &fV5tp_tr[4]);
+
+        double fV5rec_tr[5];
+        double fV5rec_lab[5];
+
+        TList newBranch;
+
+        newBranch.Add(t->Branch(Form("%s.rec.x", arm), &fV5rec_tr[0], Form("%s.rec.x/D", arm)));
+        newBranch.Add(t->Branch(Form("%s.rec.th", arm), &fV5rec_tr[1], Form("%s.rec.th/D", arm)));
+        newBranch.Add(t->Branch(Form("%s.rec.y", arm), &fV5rec_tr[2], Form("%s.rec.y/D", arm)));
+        newBranch.Add(t->Branch(Form("%s.rec.ph", arm), &fV5rec_tr[3], Form("%s.rec.ph/D", arm)));
+        newBranch.Add(t->Branch(Form("%s.rec.dp", arm), &fV5rec_tr[4], Form("%s.rec.dp/D", arm)));
+
+        newBranch.Add(t->Branch(Form("%s.rec.l_x", arm), &fV5rec_lab[0], Form("%s.rec.l_x/D", arm)));
+        newBranch.Add(t->Branch(Form("%s.rec.l_th", arm), &fV5rec_lab[1], Form("%s.rec.l_th/D", arm)));
+        newBranch.Add(t->Branch(Form("%s.rec.l_y", arm), &fV5rec_lab[2], Form("%s.rec.l_y/D", arm)));
+        newBranch.Add(t->Branch(Form("%s.rec.l_ph", arm), &fV5rec_lab[3], Form("%s.rec.l_ph/D", arm)));
+        newBranch.Add(t->Branch(Form("%s.rec.l_z", arm), &fV5rec_lab[4], Form("%s.rec.l_z/D", arm)));
+
+        int N = t->GetEntries();
+        int evnum;
+        for (int i = 0; i < N; i++) {
+            t->GetEntry(i);
+            evnum = Int_t(event->GetHeader()->GetEvtNum());
+            if (fDebug > 0) {
+                Info(here, "Processing event %d ......", evnum);
+            } else if ((i % 10000 == 0)&&(i != 0)) {
+                Info(here, "%d events Processed ......", i);
+            }
+            if ((fBPMAvail < 0.5) || (fV5tp_tr[0] > 1.0e8)) {
+                for (int i = 0; i < 5; i++) {
+                    fV5rec_tr[i] = 1e+38;
+                    fV5rec_lab[i] = 1e+38;
+                }
+            } else {
+                gRec->Process(fV5bpm_bpm, fV5tp_tr, fV5rec_tr, fV5rec_lab);
+            }
+            TIter next(&newBranch);
+            while (TBranch * br = (TBranch*) next()) {
+                br->Fill();
+            }
+        }
+
+        t->Write("", TObject::kOverwrite);
+        f->Close();
+
+        inc++;
+        filename = Form("g2p_%d_%d.root", run, inc);
+    }
 
     return 0;
 }
@@ -113,7 +226,6 @@ int main(int argc, char** argv)
 {
     int c;
 
-    int fDebug = 0;
     const char* fDBDir = "./recdb";
     int fRun = 0;
 
@@ -121,13 +233,12 @@ int main(int argc, char** argv)
         static struct option long_options[] = {
             {"dbdir", required_argument, 0, 'd'},
             {"help", no_argument, 0, 'h'},
-            {"level", required_argument, 0, 'l'},
             {0, 0, 0, 0}
         };
 
         int option_index = 0;
 
-        c = getopt_long(argc, argv, "d:hl:", long_options, &option_index);
+        c = getopt_long(argc, argv, "d:h", long_options, &option_index);
 
         if (c == -1) break;
 
@@ -140,9 +251,6 @@ int main(int argc, char** argv)
         case 'h':
             usage(argc, argv);
             exit(0);
-        case 'l':
-            fDebug = atoi(optarg);
-            break;
         case '?':
         default:
             usage(argc, argv);
@@ -164,12 +272,15 @@ int main(int argc, char** argv)
         exit(-1);
     }
 
-    if (Configure(fRun, fDBDir, fDebug) != 0) {
-        printf("Please check the database!\n");
+    if (Configure(fRun, fDBDir) != 0) {
+        Error("Main()", "Please check database!");
         exit(-1);
     }
 
-    Insert();
+    Insert(fRun);
+
+    delete gRec;
+    gRec = NULL;
 
     return 0;
 }
@@ -184,5 +295,4 @@ void usage(int argc, char** argv)
     printf("usage: %s [options] RunNumber \n", argv[0]);
     printf("  -d, --dbdir=./recdb            Set db directory\n");
     printf("  -h, --help                     Print this small usage guide\n");
-    printf("  -l, --level=0                  Set debug level\n");
 }

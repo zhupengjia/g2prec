@@ -19,6 +19,8 @@
 #include "TError.h"
 #include "TObject.h"
 
+#include "G2PConf.hh"
+
 #include "G2PAppBase.hh"
 
 using namespace std;
@@ -53,7 +55,7 @@ void G2PAppBase::TCS2HCS(double x_tr, double y_tr, double z_tr, double angle, do
     y_lab = -x_tr;
     z_lab = z_tr * cosang - y_tr*sinang;
 
-    if (fDebug > 3) Info(here, "%10.3e %10.3e %10.3e -> %10.3e %10.3e %10.3e\n", x_tr, y_tr, z_tr, x_lab, y_lab, z_lab);
+    if (fDebug > 2) Info(here, "%10.3e %10.3e %10.3e -> %10.3e %10.3e %10.3e\n", x_tr, y_tr, z_tr, x_lab, y_lab, z_lab);
 }
 
 void G2PAppBase::TCS2HCS(double t_tr, double p_tr, double angle, double &t_lab, double &p_lab)
@@ -69,7 +71,7 @@ void G2PAppBase::TCS2HCS(double t_tr, double p_tr, double angle, double &t_lab, 
     t_lab = acos(z / sqrt(x * x + y * y + z * z));
     p_lab = atan2(y, x);
 
-    if (fDebug > 3) Info(here, "%10.3e %10.3e -> %10.3e %10.3e\n", t_tr, p_tr, t_lab, p_lab);
+    if (fDebug > 2) Info(here, "%10.3e %10.3e -> %10.3e %10.3e\n", t_tr, p_tr, t_lab, p_lab);
 }
 
 void G2PAppBase::HCS2TCS(double x_lab, double y_lab, double z_lab, double angle, double &x_tr, double &y_tr, double &z_tr)
@@ -85,7 +87,7 @@ void G2PAppBase::HCS2TCS(double x_lab, double y_lab, double z_lab, double angle,
     y_tr = x_lab * cosang - z_lab*sinang;
     z_tr = x_lab * sinang + z_lab*cosang;
 
-    if (fDebug > 3) Info(here, "%10.3e %10.3e %10.3e -> %10.3e %10.3e %10.3e\n", x_lab, y_lab, z_lab, x_tr, y_tr, z_tr);
+    if (fDebug > 2) Info(here, "%10.3e %10.3e %10.3e -> %10.3e %10.3e %10.3e\n", x_lab, y_lab, z_lab, x_tr, y_tr, z_tr);
 }
 
 void G2PAppBase::HCS2TCS(double t_lab, double p_lab, double angle, double &t_tr, double &p_tr)
@@ -101,7 +103,7 @@ void G2PAppBase::HCS2TCS(double t_lab, double p_lab, double angle, double &t_tr,
     t_tr = atan2(x, z);
     p_tr = atan2(y, z);
 
-    if (fDebug > 3) Info(here, "%10.3e %10.3e -> %10.3e %10.3e", t_lab, p_lab, t_tr, p_tr);
+    if (fDebug > 2) Info(here, "%10.3e %10.3e -> %10.3e %10.3e", t_lab, p_lab, t_tr, p_tr);
 }
 
 void G2PAppBase::Project(double x, double y, double z, double zout, double t, double p, double &xout, double &yout)
@@ -116,7 +118,7 @@ void G2PAppBase::Project(double x, double y, double z, double zout, double t, do
     xout = xsave + (zout - z) * tan(t);
     yout = ysave + (zout - z) * tan(p);
 
-    if (fDebug > 2) Info(here, "%10.3e %10.3e %10.3e -> %10.3e %10.3e %10.3e", xsave, ysave, z, xout, yout, zout);
+    if (fDebug > 1) Info(here, "%10.3e %10.3e %10.3e -> %10.3e %10.3e %10.3e", xsave, ysave, z, xout, yout, zout);
 }
 
 void G2PAppBase::TRCS2FCS(const double* V5_tr, double angle, double* V5_fp)
@@ -170,7 +172,7 @@ void G2PAppBase::TRCS2FCS(const double* V5_tr, double angle, double* V5_fp)
     V5_fp[2] = y;
     V5_fp[3] = atan(p);
 
-    if (fDebug > 3) Info(here, "%10.3e %10.3e %10.3e %10.3e -> %10.3e %10.3e %10.3e %10.3e", V5_tr[0], V5_tr[1], V5_tr[2], V5_tr[3], V5_fp[0], V5_fp[1], V5_fp[2], V5_fp[3]);
+    if (fDebug > 2) Info(here, "%10.3e %10.3e %10.3e %10.3e -> %10.3e %10.3e %10.3e %10.3e", V5_tr[0], V5_tr[1], V5_tr[2], V5_tr[3], V5_fp[0], V5_fp[1], V5_fp[2], V5_fp[3]);
 }
 
 void G2PAppBase::FCS2TRCS(const double* V5_fp, double angle, double* V5_tr)
@@ -223,7 +225,7 @@ void G2PAppBase::FCS2TRCS(const double* V5_fp, double angle, double* V5_tr)
     V5_tr[2] = y_tr;
     V5_tr[3] = atan(p_tr);
 
-    if (fDebug > 3) Info(here, "%10.3e %10.3e %10.3e %10.3e -> %10.3e %10.3e %10.3e %10.3e", V5_fp[0], V5_fp[1], V5_fp[2], V5_fp[3], V5_tr[0], V5_tr[1], V5_tr[2], V5_tr[3]);
+    if (fDebug > 2) Info(here, "%10.3e %10.3e %10.3e %10.3e -> %10.3e %10.3e %10.3e %10.3e", V5_fp[0], V5_fp[1], V5_fp[2], V5_fp[3], V5_tr[0], V5_tr[1], V5_tr[2], V5_tr[3]);
 }
 
 void G2PAppBase::TRCS2DCS(const double* V5_tr, double angle, double* V5_det)
@@ -256,7 +258,7 @@ void G2PAppBase::TRCS2DCS(const double* V5_tr, double angle, double* V5_det)
     V5_det[2] = y_det;
     V5_det[3] = atan(p_det);
 
-    if (fDebug > 3) Info(here, "%10.3e %10.3e %10.3e %10.3e -> %10.3e %10.3e %10.3e %10.3e", V5_tr[0], V5_tr[1], V5_tr[2], V5_tr[3], V5_det[0], V5_det[1], V5_det[2], V5_det[3]);
+    if (fDebug > 2) Info(here, "%10.3e %10.3e %10.3e %10.3e -> %10.3e %10.3e %10.3e %10.3e", V5_tr[0], V5_tr[1], V5_tr[2], V5_tr[3], V5_det[0], V5_det[1], V5_det[2], V5_det[3]);
 }
 
 void G2PAppBase::DCS2TRCS(const double* V5_det, double angle, double* V5_tr)
@@ -289,7 +291,7 @@ void G2PAppBase::DCS2TRCS(const double* V5_det, double angle, double* V5_tr)
     V5_tr[2] = y_tr;
     V5_tr[3] = atan(p_tr);
 
-    if (fDebug > 3) Info(here, "%10.3e %10.3e %10.3e %10.3e -> %10.3e %10.3e %10.3e %10.3e", V5_det[0], V5_det[1], V5_det[2], V5_det[3], V5_tr[0], V5_tr[1], V5_tr[2], V5_tr[3]);
+    if (fDebug > 2) Info(here, "%10.3e %10.3e %10.3e %10.3e -> %10.3e %10.3e %10.3e %10.3e", V5_det[0], V5_det[1], V5_det[2], V5_det[3], V5_tr[0], V5_tr[1], V5_tr[2], V5_tr[3]);
 }
 
 void G2PAppBase::FCS2DCS(const double* V5_fp, double angle, double* V5_det)
@@ -306,7 +308,7 @@ void G2PAppBase::FCS2DCS(const double* V5_fp, double angle, double* V5_det)
 
     fDebug = save;
 
-    if (fDebug > 3) Info(here, "%10.3e %10.3e %10.3e %10.3e -> %10.3e %10.3e %10.3e %10.3e", V5_fp[0], V5_fp[1], V5_fp[2], V5_fp[3], V5_det[0], V5_det[1], V5_det[2], V5_det[3]);
+    if (fDebug > 2) Info(here, "%10.3e %10.3e %10.3e %10.3e -> %10.3e %10.3e %10.3e %10.3e", V5_fp[0], V5_fp[1], V5_fp[2], V5_fp[3], V5_det[0], V5_det[1], V5_det[2], V5_det[3]);
 }
 
 void G2PAppBase::DCS2FCS(const double* V5_det, double angle, double* V5_fp)
@@ -323,7 +325,16 @@ void G2PAppBase::DCS2FCS(const double* V5_det, double angle, double* V5_fp)
 
     fDebug = save;
 
-    if (fDebug > 3) Info(here, "%10.3e %10.3e %10.3e %10.3e -> %10.3e %10.3e %10.3e %10.3e", V5_det[0], V5_det[1], V5_det[2], V5_det[3], V5_fp[0], V5_fp[1], V5_fp[2], V5_fp[3]);
+    if (fDebug > 2) Info(here, "%10.3e %10.3e %10.3e %10.3e -> %10.3e %10.3e %10.3e %10.3e", V5_det[0], V5_det[1], V5_det[2], V5_det[3], V5_fp[0], V5_fp[1], V5_fp[2], V5_fp[3]);
+}
+
+int G2PAppBase::Configure()
+{
+    //static const char* const here = "Configure()";
+
+    gConfig->lookupValue("debug", fDebug);
+
+    return 0;
 }
 
 ClassImp(G2PAppBase)
