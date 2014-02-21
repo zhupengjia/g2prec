@@ -32,8 +32,6 @@
 using namespace std;
 using namespace libconfig;
 
-static const double kLLimit = 2.0;
-
 static const double c = 2.99792458e8;
 static const double e = 1.60217656535e-19;
 static const double kDEG = 3.14159265358979323846 / 180.0;
@@ -41,7 +39,7 @@ static const double kGEV = 1.0e9 * e / c / c;
 static const double kOneSixth = 1.0 / 6.0;
 
 G2PDrift::G2PDrift() :
-fM0(0.51099892811e-3), fQ(-1 * e), fQSave(-1 * e), fStep(1.0e-3), fStepLimit(1.0e-6), fErrLoLimit(1.0e-7), fErrHiLimit(1.0e-6), pfDriftHCS(NULL), pfDriftTCS(NULL)
+kLLimit(2.0), fM0(0.51099892811e-3), fQ(-1 * e), fQSave(-1 * e), fStep(1.0e-3), fStepLimit(1.0e-6), fErrLoLimit(1.0e-7), fErrHiLimit(1.0e-6), pfDriftHCS(NULL), pfDriftTCS(NULL)
 {
     // Constructor
 
@@ -181,7 +179,7 @@ double G2PDrift::DriftHCS(const double* x, const double* p, double zf, double *x
         }
 
         if (l < kLLimit) {
-            while (dt > dtlimit) {
+            while ((dt > dtlimit)&&(l < kLLimit)) {
                 if ((xf[2] > zf)^(sign)) {
                     l = l - fVelocity*dt;
                     dt /= 2.0;
@@ -288,7 +286,7 @@ double G2PDrift::DriftTCS(const double* x, double z_tr, double p, double angle, 
         }
 
         if (l < kLLimit) {
-            while (dt > dtlimit) {
+            while ((dt > dtlimit)&&(l < kLLimit)) {
                 if ((znew_tr > zf_tr)^(sign)) {
                     l = l - fVelocity*dt;
                     dt /= 2.0;
@@ -479,9 +477,12 @@ int G2PDrift::Configure()
     if (!gConfig->lookupValue("field.ratio", fFieldRatio))
         Warning(here, "Cannot find setting \"field.ratio\", using default value ......");
 
-    if (!(gConfig->lookupValue("particle.charge", fQ)
-            && gConfig->lookupValue("particle.mass", fM0)))
-        Warning(here, "Cannot find setting \"particle\", using default value ......");
+    if (!(gConfig->lookupValue("drift.particle.charge", fQ)
+            && gConfig->lookupValue("drift.particle.mass", fM0)))
+        Warning(here, "Cannot find setting \"drift.particle\", using default value ......");
+
+    if (!gConfig->lookupValue("drift.llimit", kLLimit))
+        Warning(here, "Cannot find setting \"drift.llimit\", using default value ......");
 
     if (fDebug > 0) {
         Info(here, "fQ       \t= %le", fQ);

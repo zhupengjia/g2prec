@@ -47,6 +47,8 @@ protected:
 
     virtual int Configure();
 
+    double kLLimit;
+
     double fM0;
     double fQ, fQSave;
     double fStep, fStepLimit, fErrLoLimit, fErrHiLimit;

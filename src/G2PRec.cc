@@ -63,9 +63,9 @@ int G2PRec::Process(const float* V5bpm_bpm, const double* V5tp_tr, double * V5re
     fV5bpm_bpm[4] = V5bpm_bpm[4] / 1000.0;
 
     fV5tpmat_tr[0] = V5tp_tr[0];
-    fV5tpmat_tr[1] = V5tp_tr[1];
+    fV5tpmat_tr[1] = atan(V5tp_tr[1]);
     fV5tpmat_tr[2] = V5tp_tr[2];
-    fV5tpmat_tr[3] = V5tp_tr[3];
+    fV5tpmat_tr[3] = atan(V5tp_tr[3]);
     fV5tpmat_tr[4] = V5tp_tr[4];
 
     //fV5tpmat_tr[0] = GetEffBPMX();
@@ -90,33 +90,50 @@ int G2PRec::Process(const float* V5bpm_bpm, const double* V5tp_tr, double * V5re
         Info(here, "sivproj_tr: %10.3e %10.3e %10.3e %10.3e %10.3e", fV5sieveproj_tr[0], fV5sieveproj_tr[1], fV5sieveproj_tr[2], fV5sieveproj_tr[3], fV5sieveproj_tr[4]);
     }
 
-    pDrift->Drift(fV5sieveproj_tr, fSieveZ, fHRSMomentum, fHRSAngle, 0.0, fV5tprec_tr);
-    TCS2HCS(fV5tprec_tr[0], fV5tprec_tr[2], 0.0, fHRSAngle, fV5tprec_lab[0], fV5tprec_lab[2], fV5tprec_lab[4]);
-    TCS2HCS(fV5tprec_tr[1], fV5tprec_tr[3], fHRSAngle, fV5tprec_lab[1], fV5tprec_lab[3]);
+    if (pDrift->Drift(fV5sieveproj_tr, fSieveZ, fHRSMomentum, fHRSAngle, 0.0, fV5rec_tr) > fDriftLimit) {
+        for (int i = 0; i < 5; i++) {
+            V5rec_tr[i] = 1.e+38;
+            V5rec_lab[i] = 1.e+38;
+        }
+        return -1;
+    }
 
-    double x[3] = {fV5tprec_lab[0], fV5tprec_lab[2], fV5tprec_lab[4]};
-    double p[3] = {fHRSMomentum * (1 + fV5tprec_tr[4]) * sin(fV5tprec_lab[1]) * cos(fV5tprec_lab[3]),
-        fHRSMomentum * (1 + fV5tprec_tr[4]) * sin(fV5tprec_lab[1]) * sin(fV5tprec_lab[3]),
-        fHRSMomentum * (1 + fV5tprec_tr[4]) * cos(fV5tprec_lab[1])};
-    pDrift->Drift(x, p, fRecZ, x, p);
+    TCS2HCS(fV5rec_tr[0], fV5rec_tr[2], 0.0, fHRSAngle, fV5rec_lab[0], fV5rec_lab[2], fV5rec_lab[4]);
+    TCS2HCS(fV5rec_tr[1], fV5rec_tr[3], fHRSAngle, fV5rec_lab[1], fV5rec_lab[3]);
+
+    double x[3] = {fV5rec_lab[0], fV5rec_lab[2], fV5rec_lab[4]};
+    double p[3] = {fHRSMomentum * (1 + fV5rec_tr[4]) * sin(fV5rec_lab[1]) * cos(fV5rec_lab[3]),
+        fHRSMomentum * (1 + fV5rec_tr[4]) * sin(fV5rec_lab[1]) * sin(fV5rec_lab[3]),
+        fHRSMomentum * (1 + fV5rec_tr[4]) * cos(fV5rec_lab[1])};
+
+    if (pDrift->Drift(x, p, fRecZ, x, p) > fDriftLimit) {
+        for (int i = 0; i < 5; i++) {
+            V5rec_tr[i] = 1.e+38;
+            V5rec_lab[i] = 1.e+38;
+        }
+        return -1;
+    };
+
     double temp;
-    fV5tprec_lab[0] = x[0];
-    fV5tprec_lab[1] = acos(p[2] / (fHRSMomentum * (1 + fV5tprec_tr[4])));
-    fV5tprec_lab[2] = x[1];
-    fV5tprec_lab[3] = atan2(p[1], p[0]);
-    fV5tprec_lab[4] = x[2];
-    HCS2TCS(x[0], x[1], x[2], fHRSAngle, fV5tprec_tr[0], fV5tprec_tr[2], temp);
-    HCS2TCS(fV5tprec_lab[1], fV5tprec_lab[2], fHRSAngle, fV5tprec_tr[1], fV5tprec_tr[3]);
+    fV5rec_lab[0] = x[0];
+    fV5rec_lab[1] = acos(p[2] / (fHRSMomentum * (1 + fV5rec_tr[4])));
+    fV5rec_lab[2] = x[1];
+    fV5rec_lab[3] = atan2(p[1], p[0]);
+    fV5rec_lab[4] = x[2];
+    HCS2TCS(x[0], x[1], x[2], fHRSAngle, fV5rec_tr[0], fV5rec_tr[2], temp);
+    HCS2TCS(fV5rec_lab[1], fV5rec_lab[3], fHRSAngle, fV5rec_tr[1], fV5rec_tr[3]);
 
     if (fDebug > 0) {
-        Info(here, "tprec_tr  : %10.3e %10.3e %10.3e %10.3e %10.3e", fV5tprec_tr[0], fV5tprec_tr[1], fV5tprec_tr[2], fV5tprec_tr[3], fV5tprec_tr[4]);
-        Info(here, "tprec_lab : %10.3e %10.3e %10.3e %10.3e %10.3e", fV5tprec_lab[0], fV5tprec_lab[1], fV5tprec_lab[2], fV5tprec_lab[3], fV5tprec_lab[4]);
+        Info(here, "rec_tr    : %10.3e %10.3e %10.3e %10.3e %10.3e", fV5rec_tr[0], fV5rec_tr[1], fV5rec_tr[2], fV5rec_tr[3], fV5rec_tr[4]);
+        Info(here, "rec_lab   : %10.3e %10.3e %10.3e %10.3e %10.3e", fV5rec_lab[0], fV5rec_lab[1], fV5rec_lab[2], fV5rec_lab[3], fV5rec_lab[4]);
     }
 
     for (int i = 0; i < 5; i++) {
-        V5rec_tr[i] = fV5tprec_tr[i];
-        V5rec_lab[i] = fV5tprec_lab[i];
+        V5rec_tr[i] = fV5rec_tr[i];
+        V5rec_lab[i] = fV5rec_lab[i];
     }
+    V5rec_tr[1] = tan(V5rec_tr[1]);
+    V5rec_tr[3] = tan(V5rec_tr[3]);
 
     return 0;
 }
@@ -144,8 +161,8 @@ void G2PRec::Clear()
     memset(fV5bpm_bpm, 0, sizeof (fV5bpm_bpm));
     memset(fV5tpmat_tr, 0, sizeof (fV5tpmat_tr));
     memset(fV5sieveproj_tr, 0, sizeof (fV5sieveproj_tr));
-    memset(fV5tprec_tr, 0, sizeof (fV5tprec_tr));
-    memset(fV5tprec_lab, 0, sizeof (fV5tprec_lab));
+    memset(fV5rec_tr, 0, sizeof (fV5rec_tr));
+    memset(fV5rec_lab, 0, sizeof (fV5rec_lab));
 }
 
 double G2PRec::GetEffBPMX()
@@ -206,6 +223,9 @@ int G2PRec::Configure()
 
     if (!gConfig->lookupValue("rec.z", fRecZ))
         Warning(here, "Cannot find setting \"rec.z\", using default value ......");
+
+    if (!gConfig->lookupValue("drift.llimit", fDriftLimit))
+        Warning(here, "Cannot find setting \"drift.llimit\", using default value ......");
 
     if (fDebug > 0) {
         Info(here, "fHRSAngle\t= %le", fHRSAngle / kDEG);

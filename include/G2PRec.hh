@@ -37,6 +37,8 @@ protected:
     double fHRSMomentum;
     double fFieldRatio;
 
+    double fDriftLimit;
+
     double fSieveZ;
     double fRecZ;
 
@@ -45,8 +47,8 @@ protected:
     double fV5tpmat_tr[5];
     double fV5sieveproj_tr[5];
 
-    double fV5tprec_tr[5];
-    double fV5tprec_lab[5];
+    double fV5rec_tr[5];
+    double fV5rec_lab[5];
 
     G2PDrift* pDrift;
 

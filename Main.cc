@@ -41,14 +41,17 @@ using namespace libconfig;
 Config* gConfig = new Config();
 G2PRec* gRec = NULL;
 
+const char* DBDIR = "./recdb";
+const char* ROOTDIR = ".";
+
 bool isexist(const char* filename);
 void usage(int argc, char** argv);
 
-int Configure(int run, const char* dbdir)
+int Configure(int run)
 {
     static const char* const here = "Main::Configure()";
 
-    TFile *f = new TFile(Form("g2p_%d.root", run), "READ");
+    TFile *f = new TFile(Form("%s/g2p_%d.root", ROOTDIR, run), "READ");
     TTree *t = (TTree *) f->Get("T");
 
     THaEvent *event = new THaEvent();
@@ -63,7 +66,7 @@ int Configure(int run, const char* dbdir)
 
     f->Close();
 
-    void* dirp = gSystem->OpenDirectory(dbdir);
+    void* dirp = gSystem->OpenDirectory(DBDIR);
     if (dirp == NULL) return -1;
 
     const char* result;
@@ -95,17 +98,17 @@ int Configure(int run, const char* dbdir)
 
         // Only work for g2p
         if (run < 20000) {
-            Info(here, "Use %s", Form("%s/%d/db_L.optics.cfg", dbdir, (*it)));
-            gConfig->readFile(Form("%s/%d/db_L.optics.cfg", dbdir, (*it)));
+            Info(here, "Use %s", Form("%s/%d/db_L.optics.cfg", DBDIR, (*it)));
+            gConfig->readFile(Form("%s/%d/db_L.optics.cfg", DBDIR, (*it)));
         } else if (run < 40000) {
-            Info(here, "Use %s", Form("%s/%d/db_R.optics.cfg", dbdir, (*it)));
-            gConfig->readFile(Form("%s/%d/db_R.optics.cfg", dbdir, (*it)));
+            Info(here, "Use %s", Form("%s/%d/db_R.optics.cfg", DBDIR, (*it)));
+            gConfig->readFile(Form("%s/%d/db_R.optics.cfg", DBDIR, (*it)));
         } else return -1;
     }
 
     gRec = new G2PRec();
 
-    const char* rundbfile = Form("%s/db_rec.dat", dbdir);
+    const char* rundbfile = Form("%s/db_rec.dat", DBDIR);
     if (!isexist(rundbfile)) {
         return -1;
     }
@@ -140,12 +143,12 @@ int Insert(int run)
     const char* arm = "R";
     if (run < 20000) arm = "L";
 
-    const char* filename = Form("g2p_%d.root", run);
+    const char* filename = Form("%s/g2p_%d.root", ROOTDIR, run);
     int inc = 0;
 
     while (isexist(filename)) {
         TFile *f = new TFile(filename, "UPDATE");
-        printf("Opening existed rootfile %s ...\n", filename);
+        Info(here, "Opening existed rootfile %s ...", filename);
 
         TTree *t = (TTree *) f->Get("T");
         t->SetMaxTreeSize(2000000000);
@@ -190,6 +193,7 @@ int Insert(int run)
 
         int N = t->GetEntries();
         int evnum;
+        TIter next(&newBranch);
         for (int i = 0; i < N; i++) {
             t->GetEntry(i);
             evnum = Int_t(event->GetHeader()->GetEvtNum());
@@ -206,7 +210,7 @@ int Insert(int run)
             } else {
                 gRec->Process(fV5bpm_bpm, fV5tp_tr, fV5rec_tr, fV5rec_lab);
             }
-            TIter next(&newBranch);
+            next.Reset();
             while (TBranch * br = (TBranch*) next()) {
                 br->Fill();
             }
@@ -216,8 +220,10 @@ int Insert(int run)
         f->Close();
 
         inc++;
-        filename = Form("g2p_%d_%d.root", run, inc);
+        filename = Form("%s/g2p_%d_%d.root", ROOTDIR, run, inc);
     }
+
+    Info(here, "No more rootfiles.");
 
     return 0;
 }
@@ -226,19 +232,19 @@ int main(int argc, char** argv)
 {
     int c;
 
-    const char* fDBDir = "./recdb";
     int fRun = 0;
 
     while (1) {
         static struct option long_options[] = {
             {"dbdir", required_argument, 0, 'd'},
             {"help", no_argument, 0, 'h'},
+            {"rootdir", required_argument, 0, 'r'},
             {0, 0, 0, 0}
         };
 
         int option_index = 0;
 
-        c = getopt_long(argc, argv, "d:h", long_options, &option_index);
+        c = getopt_long(argc, argv, "d:hr:", long_options, &option_index);
 
         if (c == -1) break;
 
@@ -246,11 +252,14 @@ int main(int argc, char** argv)
         case 0:
             break;
         case 'd':
-            fDBDir = Form("%s", optarg);
+            DBDIR = Form("%s", optarg);
             break;
         case 'h':
             usage(argc, argv);
             exit(0);
+        case 'r':
+            ROOTDIR = Form("%s", optarg);
+            break;
         case '?':
         default:
             usage(argc, argv);
@@ -265,14 +274,14 @@ int main(int argc, char** argv)
         exit(-1);
     }
 
-    const char* fFileName = Form("g2p_%d.root", fRun);
+    const char* fFileName = Form("%s/g2p_%d.root", ROOTDIR, fRun);
 
     if (!isexist(fFileName)) {
         usage(argc, argv);
         exit(-1);
     }
 
-    if (Configure(fRun, fDBDir) != 0) {
+    if (Configure(fRun) != 0) {
         Error("Main()", "Please check database!");
         exit(-1);
     }
@@ -293,6 +302,7 @@ bool isexist(const char* fname)
 void usage(int argc, char** argv)
 {
     printf("usage: %s [options] RunNumber \n", argv[0]);
-    printf("  -d, --dbdir=./recdb            Set db directory\n");
+    printf("  -d, --dbdir=$PWD/recdb         Set db directory\n");
     printf("  -h, --help                     Print this small usage guide\n");
+    printf("  -r, --rootdir=$PWD             Set db directory\n");
 }
