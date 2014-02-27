@@ -23,16 +23,20 @@ public:
 
     virtual int Process(const float* V5bpm_bpm, const double* V5tp_tr, double* V5rec_tr, double* V5rec_lab);
 
+    void SetBeamEnergy(double e);
     void SetHRSMomentum(double p);
 
 protected:
     virtual int Initialize();
     virtual void Clear();
 
-    double GetEffBPMX();
+    void TransBPM2Tr(const double* V5_bpm, double* V5_tr);
+
+    double GetEffBPM(int axis);
 
     virtual int Configure();
 
+    double fBeamEnergy;
     double fHRSAngle;
     double fHRSMomentum;
     double fFieldRatio;
@@ -42,7 +46,10 @@ protected:
     double fSieveZ;
     double fRecZ;
 
+    double fFitPar[2][3];
+
     double fV5bpm_bpm[5];
+    double fV5bpm_tr[5];
 
     double fV5tpmat_tr[5];
     double fV5sieveproj_tr[5];

@@ -33,9 +33,11 @@ using namespace libconfig;
 static const double kDEG = 3.14159265358979323846 / 180.0;
 
 G2PRec::G2PRec() :
-fHRSAngle(5.767 * kDEG), fHRSMomentum(2.254), fFieldRatio(0.0), fSieveZ(800.0), fRecZ(0.0)
+fBeamEnergy(2.254), fHRSAngle(5.767 * kDEG), fHRSMomentum(2.254), fFieldRatio(0.0), fSieveZ(800.0), fRecZ(0.0)
 {
     // Constructor
+
+    memset(fFitPar, 0, sizeof (fFitPar));
 
     pDrift = new G2PDrift();
 
@@ -62,18 +64,18 @@ int G2PRec::Process(const float* V5bpm_bpm, const double* V5tp_tr, double * V5re
     fV5bpm_bpm[3] = V5bpm_bpm[3];
     fV5bpm_bpm[4] = V5bpm_bpm[4] / 1000.0;
 
+    TransBPM2Tr(fV5bpm_bpm, fV5bpm_tr);
+
     fV5tpmat_tr[0] = V5tp_tr[0];
     fV5tpmat_tr[1] = atan(V5tp_tr[1]);
     fV5tpmat_tr[2] = V5tp_tr[2];
     fV5tpmat_tr[3] = atan(V5tp_tr[3]);
     fV5tpmat_tr[4] = V5tp_tr[4];
 
-    //fV5tpmat_tr[0] = GetEffBPMX();
+    fV5tpmat_tr[0] = GetEffBPM(0);
 
 #ifdef USE_BPMY
-    double V3temp_tr[3];
-    HCS2TCS(fV5bpm_bpm[0], fV5bpm_bpm[2], fV5bpm_bpm[4], fHRSAngle, V3temp_tr[0], V3temp_tr[1], V3temp_tr[2]);
-    fV5tpmat_tr[2] = V3temp_tr[1];
+    fV5tpmat_tr[2] = GetEffBPM(1);
 #endif
 
     if (fDebug > 0) {
@@ -138,6 +140,17 @@ int G2PRec::Process(const float* V5bpm_bpm, const double* V5tp_tr, double * V5re
     return 0;
 }
 
+void G2PRec::SetBeamEnergy(double e)
+{
+    static const char* const here = "Configure()";
+
+    fBeamEnergy = e;
+
+    if (fDebug > 0) {
+        Info(here, "fBeanEnergy\t= %le", fBeamEnergy);
+    }
+}
+
 void G2PRec::SetHRSMomentum(double p)
 {
     static const char* const here = "Configure()";
@@ -159,51 +172,64 @@ int G2PRec::Initialize()
 void G2PRec::Clear()
 {
     memset(fV5bpm_bpm, 0, sizeof (fV5bpm_bpm));
+    memset(fV5bpm_tr, 0, sizeof (fV5bpm_tr));
     memset(fV5tpmat_tr, 0, sizeof (fV5tpmat_tr));
     memset(fV5sieveproj_tr, 0, sizeof (fV5sieveproj_tr));
     memset(fV5rec_tr, 0, sizeof (fV5rec_tr));
     memset(fV5rec_lab, 0, sizeof (fV5rec_lab));
 }
 
-double G2PRec::GetEffBPMX()
+void G2PRec::TransBPM2Tr(const double* V5_bpm, double* V5_tr)
 {
-    static const char* const here = "GetEffBPMX()";
+    static const char* const here = "TransBPM2Tr()";
 
-    // Fit result:
-    //
-    // (Xbpm_tr-Xtg_tr) vs Z
-    // ([0]+[1]*x)
-    // Fitting result of (Xbpm_tr-Xtg_tr) vs Z @ 2.5T
-    // p0                        =    -0.011838   +/-   0.00132798
-    // p1                        =      49.856    +/-   0.163115
-    //
-    // (Xtg_tr-Xtgproj_tr) vs P
-    // ([0]+[1]/x)
-    // Fitting result of (Xtg_tr-Xtgproj_tr) vs P @ 2.5T
-    // p0                        =    0.0183611   +/-   0.0105237
-    // p1                        =      3.14345   +/-   0.0105453
-    // Fitting result of (Xtg_tr-Xtgproj_tr) vs P @ 5.0T
-    // p0                        =      0.14139   +/-   0.018683
-    // p1                        =      6.11766   +/-   0.0187211
-    //
+    //double x[3] = {V5_bpm[0], V5_bpm[2], V5_bpm[4]};
+    double p[3] = {tan(V5_bpm[3]), tan(V5_bpm[1]), 1.0};
+    double pp = sqrt(p[0] * p[0] + p[1] * p[1] + p[2] * p[2]);
+    double theta = acos(1.0 / pp);
+    double phi = atan2(p[1], p[0]);
 
-    double V3bpm_tr[5];
-    HCS2TCS(fV5bpm_bpm[0], fV5bpm_bpm[2], fV5bpm_bpm[4], fHRSAngle, V3bpm_tr[0], V3bpm_tr[1], V3bpm_tr[2]);
+    double z_tr;
+    HCS2TCS(V5_bpm[0], V5_bpm[2], V5_bpm[4], fHRSAngle, V5_tr[0], V5_tr[2], z_tr);
+    HCS2TCS(theta, phi, fHRSAngle, V5_tr[1], V5_tr[3]);
+    V5_tr[4] = 0.0;
+    pDrift->Drift(V5_tr, z_tr, fBeamEnergy, fHRSAngle, 0.0, V5_tr);
 
-    double xbpm_tr = V3bpm_tr[0];
-    double xeffbpm_tr = xbpm_tr;
+    if (fDebug > 2) {
+        Info(here, "%10.3e %10.3e %10.3e %10.3e -> %10.3e %10.3e %10.3e %10.3e", V5_bpm[0], V5_bpm[1], V5_bpm[2], V5_bpm[3], V5_tr[0], V5_tr[1], V5_tr[2], V5_tr[3]);
+    }
+}
+
+double G2PRec::GetEffBPM(int axis)
+{
+    static const char* const here = "GetEffBPM()";
+
+    double xbpm_tr = fV5bpm_tr[0];
+    double ybpm_tr = fV5bpm_tr[2];
+
+    double effbpm_tr;
+    if (axis == 0)
+        effbpm_tr = xbpm_tr;
+    else if (axis == 1)
+        effbpm_tr = ybpm_tr;
+    else return 1e38;
 
     if (fFieldRatio > 1e-5) {
+        // Fit:
+        // (Xbpm_tr-Xeffbpm_tr) vs P
+        // ([0]+[1]/x)
         double p = (1 + fV5tpmat_tr[4]) * fHRSMomentum;
-        if (fFieldRatio < 0.75) xeffbpm_tr = xbpm_tr - (3.14345 / p + 0.0183611) / 1000 * fFieldRatio / 0.5;
-        else xeffbpm_tr = xbpm_tr - (6.11766 / p + 0.14139) / 1000 * fFieldRatio / 1.0;
+        if (axis == 0)
+            effbpm_tr = xbpm_tr - (fFitPar[0][0] + (fFitPar[0][1] + fFitPar[0][2] * ybpm_tr) / p) / 1000;
+        else if (axis == 1)
+            effbpm_tr = ybpm_tr - (fFitPar[0][0] + (fFitPar[0][1] + fFitPar[0][2] * xbpm_tr) / p) / 1000;
     }
 
     if (fDebug > 1) {
-        Info(here, "%10.3e", xeffbpm_tr);
+        Info(here, "effbpm_tr :%10.3e", effbpm_tr);
     }
 
-    return xeffbpm_tr;
+    return effbpm_tr;
 }
 
 int G2PRec::Configure()
@@ -223,6 +249,16 @@ int G2PRec::Configure()
 
     if (!gConfig->lookupValue("rec.z", fRecZ))
         Warning(here, "Cannot find setting \"rec.z\", using default value ......");
+
+    if (!(gConfig->lookupValue("rec.fit.x.p0", fFitPar[0][0])
+            && gConfig->lookupValue("rec.fit.x.p1", fFitPar[0][1])
+            && gConfig->lookupValue("rec.fit.x.p2", fFitPar[0][2])))
+        Warning(here, "Cannot find setting \"rec.beamfit\", using default value ......");
+
+    if (!(gConfig->lookupValue("rec.fit.y.p0", fFitPar[1][0])
+            && gConfig->lookupValue("rec.fit.y.p1", fFitPar[1][1])
+            && gConfig->lookupValue("rec.fit.y.p2", fFitPar[1][2])))
+        Warning(here, "Cannot find setting \"rec.beamfit\", using default value ......");
 
     if (!gConfig->lookupValue("drift.llimit", fDriftLimit))
         Warning(here, "Cannot find setting \"drift.llimit\", using default value ......");

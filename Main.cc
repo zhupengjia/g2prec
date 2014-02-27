@@ -116,11 +116,12 @@ int Configure(int run)
     FILE *fp = fopen(rundbfile, "r");
 
     int id = 0;
-    double p = 0.0;
+    double e = 0.0, p = 0.0;
     bool found = false;
     while (!feof(fp)) {
-        fscanf(fp, "%d%le", &id, &p);
+        fscanf(fp, "%d%le%le", &id, &e, &p);
         if (id == run) {
+            gRec->SetBeamEnergy(e);
             gRec->SetHRSMomentum(p);
             found = true;
             break;
