@@ -46,7 +46,7 @@ protected:
     double fSieveZ;
     double fRecZ;
 
-    double fFitPar[2][3];
+    double fFitPars[2][3];
 
     double fV5bpm_bpm[5];
     double fV5bpm_tr[5];

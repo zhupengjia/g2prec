@@ -37,7 +37,7 @@ fBeamEnergy(2.254), fHRSAngle(5.767 * kDEG), fHRSMomentum(2.254), fFieldRatio(0.
 {
     // Constructor
 
-    memset(fFitPar, 0, sizeof (fFitPar));
+    memset(fFitPars, 0, sizeof (fFitPars));
 
     pDrift = new G2PDrift();
 
@@ -220,9 +220,9 @@ double G2PRec::GetEffBPM(int axis)
         // ([0]+[1]/x)
         double p = (1 + fV5tpmat_tr[4]) * fHRSMomentum;
         if (axis == 0)
-            effbpm_tr = xbpm_tr - (fFitPar[0][0] + (fFitPar[0][1] + fFitPar[0][2] * ybpm_tr) / p) / 1000;
+            effbpm_tr = xbpm_tr - (fFitPars[0][0] + (fFitPars[0][1] + fFitPars[0][2] * ybpm_tr) / p) / 1000;
         else if (axis == 1)
-            effbpm_tr = ybpm_tr - (fFitPar[0][0] + (fFitPar[0][1] + fFitPar[0][2] * xbpm_tr) / p) / 1000;
+            effbpm_tr = ybpm_tr - (fFitPars[1][0] + (fFitPars[1][1] + fFitPars[1][2] * xbpm_tr) / p) / 1000;
     }
 
     if (fDebug > 1) {
@@ -250,14 +250,14 @@ int G2PRec::Configure()
     if (!gConfig->lookupValue("rec.z", fRecZ))
         Warning(here, "Cannot find setting \"rec.z\", using default value ......");
 
-    if (!(gConfig->lookupValue("rec.fit.x.p0", fFitPar[0][0])
-            && gConfig->lookupValue("rec.fit.x.p1", fFitPar[0][1])
-            && gConfig->lookupValue("rec.fit.x.p2", fFitPar[0][2])))
+    if (!(gConfig->lookupValue("rec.fit.x.p0", fFitPars[0][0])
+            && gConfig->lookupValue("rec.fit.x.p1", fFitPars[0][1])
+            && gConfig->lookupValue("rec.fit.x.p2", fFitPars[0][2])))
         Warning(here, "Cannot find setting \"rec.beamfit\", using default value ......");
 
-    if (!(gConfig->lookupValue("rec.fit.y.p0", fFitPar[1][0])
-            && gConfig->lookupValue("rec.fit.y.p1", fFitPar[1][1])
-            && gConfig->lookupValue("rec.fit.y.p2", fFitPar[1][2])))
+    if (!(gConfig->lookupValue("rec.fit.y.p0", fFitPars[1][0])
+            && gConfig->lookupValue("rec.fit.y.p1", fFitPars[1][1])
+            && gConfig->lookupValue("rec.fit.y.p2", fFitPars[1][2])))
         Warning(here, "Cannot find setting \"rec.beamfit\", using default value ......");
 
     if (!gConfig->lookupValue("drift.llimit", fDriftLimit))
