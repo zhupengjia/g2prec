@@ -147,7 +147,7 @@ void G2PRec::SetBeamEnergy(double e)
     fBeamEnergy = e;
 
     if (fDebug > 0) {
-        Info(here, "fBeanEnergy\t= %le", fBeamEnergy);
+        Info(here, "fBeamEnergy\t= %le", fBeamEnergy);
     }
 }
 

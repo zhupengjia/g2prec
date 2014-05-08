@@ -155,7 +155,7 @@ int Insert(int run)
         t->SetMaxTreeSize(2000000000);
 
         float fV5bpm_bpm[5];
-        float fBPMAvail;
+        int fBPMAvail;
         double fV5tp_tr[5];
         THaEvent *event = new THaEvent();
 
@@ -165,7 +165,7 @@ int Insert(int run)
         t->SetBranchAddress(Form("%srb.tgt_0_theta", arm), &fV5bpm_bpm[1]);
         t->SetBranchAddress(Form("%srb.tgt_0_y", arm), &fV5bpm_bpm[2]);
         t->SetBranchAddress(Form("%srb.tgt_0_phi", arm), &fV5bpm_bpm[3]);
-        t->SetBranchAddress(Form("%srb.tgt_0_z", arm), &fV5bpm_bpm[4]);
+        fV5bpm_bpm[4] = 0;
 
         t->SetBranchAddress(Form("%srb.bpmavail", arm), &fBPMAvail);
 
@@ -203,7 +203,8 @@ int Insert(int run)
             } else if ((i % 10000 == 0)&&(i != 0)) {
                 Info(here, "%d events Processed ......", i);
             }
-            if ((fBPMAvail < 0.5) || (fV5tp_tr[0] > 1.0e8)) {
+            if ((fBPMAvail < 0.5) || (fV5tp_tr[0] > 1.0e8) || (fV5tp_tr[1] > 1.0e8) || (fV5tp_tr[2] > 1.0e8)
+                    || (fV5tp_tr[3] > 1.0e8) || (fV5tp_tr[4] > 1.0e8)) {
                 for (int i = 0; i < 5; i++) {
                     fV5rec_tr[i] = 1e+38;
                     fV5rec_lab[i] = 1e+38;
