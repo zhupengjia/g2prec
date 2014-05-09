@@ -152,7 +152,6 @@ int Insert(int run)
         Info(here, "Opening existed rootfile %s ...", filename);
 
         TTree *t = (TTree *) f->Get("T");
-        t->SetMaxTreeSize(2000000000);
 
         float fV5bpm_bpm[5];
         int fBPMAvail;
