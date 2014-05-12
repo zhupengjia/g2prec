@@ -160,11 +160,21 @@ int Insert(int run)
 
         t->SetBranchAddress("Event_Branch", &event);
 
+        if (t->FindBranch(Form("%srb.tgt_m13_x", arm))) {
+            gRec->SetRecZ(-13.6271e-3);
+        } else if (t->FindBranch(Form("%srb.tgt_m12_x", arm))) {
+            gRec->SetRecZ(-12.5476e-3);
+        } else if (t->FindBranch(Form("%srb.tgt_m10_x", arm))) {
+            gRec->SetRecZ(-10.81e-3);
+        } else {
+            gRec->SetRecZ(0.0);
+        }
+
         t->SetBranchAddress(Form("%srb.tgt_0_x", arm), &fV5bpm_bpm[0]);
         t->SetBranchAddress(Form("%srb.tgt_0_theta", arm), &fV5bpm_bpm[1]);
         t->SetBranchAddress(Form("%srb.tgt_0_y", arm), &fV5bpm_bpm[2]);
         t->SetBranchAddress(Form("%srb.tgt_0_phi", arm), &fV5bpm_bpm[3]);
-        fV5bpm_bpm[4] = 0;
+        fV5bpm_bpm[4] = 0.0;
 
         t->SetBranchAddress(Form("%srb.bpmavail", arm), &fBPMAvail);
 

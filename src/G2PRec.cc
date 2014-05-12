@@ -162,6 +162,17 @@ void G2PRec::SetHRSMomentum(double p)
     }
 }
 
+void G2PRec::SetRecZ(double z)
+{
+    static const char* const here = "Configure()";
+
+    fRecZ = z;
+
+    if (fDebug > 0) {
+        Info(here, "fRecZ\t= %le", fRecZ);
+    }
+}
+
 int G2PRec::Initialize()
 {
     //static const char* const here = "Initialize()";
@@ -247,9 +258,6 @@ int G2PRec::Configure()
     if (!gConfig->lookupValue("sieve.z", fSieveZ))
         Warning(here, "Cannot find setting \"sieve.z\", using default value ......");
 
-    if (!gConfig->lookupValue("rec.z", fRecZ))
-        Warning(here, "Cannot find setting \"rec.z\", using default value ......");
-
     if (!(gConfig->lookupValue("rec.fit.x.p0", fFitPars[0][0])
             && gConfig->lookupValue("rec.fit.x.p1", fFitPars[0][1])
             && gConfig->lookupValue("rec.fit.x.p2", fFitPars[0][2])))
@@ -266,7 +274,6 @@ int G2PRec::Configure()
     if (fDebug > 0) {
         Info(here, "fHRSAngle\t= %le", fHRSAngle / kDEG);
         Info(here, "fSieveZ  \t= %le", fSieveZ);
-        Info(here, "fRecZ    \t= %le", fRecZ);
     }
 
     return 0;

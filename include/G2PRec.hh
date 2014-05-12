@@ -25,6 +25,7 @@ public:
 
     void SetBeamEnergy(double e);
     void SetHRSMomentum(double p);
+    void SetRecZ(double z);
 
 protected:
     virtual int Initialize();
