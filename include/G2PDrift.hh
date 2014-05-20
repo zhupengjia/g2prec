@@ -33,7 +33,7 @@ protected:
     typedef double (G2PDrift::*pfDriftTCS_)(const double*, double, double, double, double, double*);
 
     virtual int Initialize();
-    virtual void Clear();
+    virtual void Clear(Option_t* /*option*/ = "");
 
     double DriftHCS(const double* x, const double* p, double zf, double *xout, double *pout);
     double DriftHCSNF(const double* x, const double* p, double zf, double *xout, double *pout);

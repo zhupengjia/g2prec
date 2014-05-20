@@ -32,7 +32,7 @@ public:
 
 protected:
     virtual int Initialize();
-    virtual void Clear();
+    virtual void Clear(Option_t* /*option*/ = "");
 
     void SetRotationMatrix();
 

@@ -136,7 +136,7 @@ int G2PField::Initialize()
     return (status);
 }
 
-void G2PField::Clear()
+void G2PField::Clear(Option_t* /*option*/)
 {
     // Nothing to do
 }

@@ -34,7 +34,6 @@ using namespace libconfig;
 
 static const double c = 2.99792458e8;
 static const double e = 1.60217656535e-19;
-static const double kDEG = 3.14159265358979323846 / 180.0;
 static const double kGEV = 1.0e9 * e / c / c;
 static const double kOneSixth = 1.0 / 6.0;
 
@@ -108,7 +107,7 @@ int G2PDrift::Initialize()
     return 0;
 }
 
-void G2PDrift::Clear()
+void G2PDrift::Clear(Option_t* /*option*/)
 {
     fVelocity = 0.0;
     fVelocity2 = 0.0;

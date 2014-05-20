@@ -27,7 +27,7 @@ protected:
     G2PAppBase(); // No instance allowed for this class
 
     virtual int Initialize() = 0;
-    virtual void Clear() = 0;
+    virtual void Clear(Option_t* /*option*/ = "") = 0;
 
     // Geometry utility functions
     virtual void TCS2HCS(double x_tr, double y_tr, double z_tr, double angle, double &x_lab, double &y_lab, double &z_lab);

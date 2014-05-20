@@ -33,7 +33,7 @@ using namespace libconfig;
 static const double kDEG = 3.14159265358979323846 / 180.0;
 
 G2PRec::G2PRec() :
-fBeamEnergy(2.254), fHRSAngle(5.767 * kDEG), fHRSMomentum(2.254), fFieldRatio(0.0), fSieveZ(800.0), fRecZ(0.0)
+fBeamEnergy(2.254), fHRSAngle(5.767 * kDEG), fHRSMomentum(2.254), fFieldRatio(0.0), fSieveZ(800.0), fRecZ(0.0), fExtTgtCorrT(0.0), fExtTgtCorrP(0.0), fExtTgtCorrD(0.0)
 {
     // Constructor
 
@@ -66,16 +66,20 @@ int G2PRec::Process(const float* V5bpm_bpm, const double* V5tp_tr, double * V5re
 
     TransBPM2Tr(fV5bpm_bpm, fV5bpm_tr);
 
-    fV5tpmat_tr[0] = V5tp_tr[0];
-    fV5tpmat_tr[1] = atan(V5tp_tr[1]);
-    fV5tpmat_tr[2] = V5tp_tr[2];
-    fV5tpmat_tr[3] = atan(V5tp_tr[3]);
-    fV5tpmat_tr[4] = V5tp_tr[4];
+    ExtTgtCorr(fV5bpm_tr[0], fV5bpm_tr[2], V5tp_tr, fV5tpmat_tr);
 
-    fV5tpmat_tr[0] = GetEffBPM(0);
+    double delta_old = 1e38;
+    double xeff_tr = 0, yeff_tr = 0;
+    while (fabs(fV5tpmat_tr[4] - delta_old) > 1.e-3) {
+        delta_old = fV5tpmat_tr[4];
+        xeff_tr = GetEffBPM(0);
+        yeff_tr = GetEffBPM(1);
+        ExtTgtCorr(xeff_tr, yeff_tr, V5tp_tr, fV5tpmat_tr);
+    }
 
+    fV5tpmat_tr[0] = xeff_tr;
 #ifdef USE_BPMY
-    fV5tpmat_tr[2] = GetEffBPM(1);
+    fV5tpmat_tr[2] = yeff_tr;
 #endif
 
     if (fDebug > 0) {
@@ -180,7 +184,7 @@ int G2PRec::Initialize()
     return 0;
 }
 
-void G2PRec::Clear()
+void G2PRec::Clear(Option_t* /*option*/)
 {
     memset(fV5bpm_bpm, 0, sizeof (fV5bpm_bpm));
     memset(fV5bpm_tr, 0, sizeof (fV5bpm_tr));
@@ -243,6 +247,15 @@ double G2PRec::GetEffBPM(int axis)
     return effbpm_tr;
 }
 
+void G2PRec::ExtTgtCorr(double xbpm, double ybpm, const double* V5tp_tr, double* V5tpcorr_tr)
+{
+    V5tpcorr_tr[0] = V5tp_tr[0];
+    V5tpcorr_tr[1] = V5tp_tr[1] + fExtTgtCorrT * xbpm;
+    V5tpcorr_tr[2] = V5tp_tr[2];
+    V5tpcorr_tr[3] = V5tp_tr[3] + fExtTgtCorrP * ybpm;
+    V5tpcorr_tr[4] = V5tp_tr[4] + fExtTgtCorrD * xbpm;
+}
+
 int G2PRec::Configure()
 {
     static const char* const here = "Configure()";
@@ -267,6 +280,11 @@ int G2PRec::Configure()
             && gConfig->lookupValue("rec.fit.y.p1", fFitPars[1][1])
             && gConfig->lookupValue("rec.fit.y.p2", fFitPars[1][2])))
         Warning(here, "Cannot find setting \"rec.beamfit\", using default value ......");
+
+    if (!(gConfig->lookupValue("rec.corr.t", fExtTgtCorrT)
+            && gConfig->lookupValue("rec.corr.p", fExtTgtCorrP)
+            && gConfig->lookupValue("rec.corr.d", fExtTgtCorrD)))
+        Warning(here, "Cannot find setting \"rec.corr\", using default value ......");
 
     if (!gConfig->lookupValue("drift.llimit", fDriftLimit))
         Warning(here, "Cannot find setting \"drift.llimit\", using default value ......");

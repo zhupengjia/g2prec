@@ -29,11 +29,12 @@ public:
 
 protected:
     virtual int Initialize();
-    virtual void Clear();
+    virtual void Clear(Option_t* /*option*/ = "");
 
     void TransBPM2Tr(const double* V5_bpm, double* V5_tr);
 
     double GetEffBPM(int axis);
+    void ExtTgtCorr(double xbpm, double ybpm, const double* V5tp_tr, double* V5tpcorr_tr);
 
     virtual int Configure();
 
@@ -46,6 +47,10 @@ protected:
 
     double fSieveZ;
     double fRecZ;
+
+    double fExtTgtCorrT;
+    double fExtTgtCorrP;
+    double fExtTgtCorrD;
 
     double fFitPars[2][3];
 
