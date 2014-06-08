@@ -25,8 +25,6 @@
 
 #include "G2PRec.hh"
 
-#define USE_BPMY 1
-
 using namespace std;
 using namespace libconfig;
 
@@ -54,7 +52,7 @@ G2PRec::~G2PRec()
     pDrift = NULL;
 }
 
-int G2PRec::Process(const float* V5bpm_bpm, const double* V5tp_tr, double * V5rec_tr, double* V5rec_lab)
+int G2PRec::Process(const float* V5bpm_bpm, const float* V5bpmave_bpm, const double* V5tp_tr, double* V5corr_tr, double* V5rec_tr, double* V5rec_lab)
 {
     static const char* const here = "Process()";
 
@@ -64,28 +62,51 @@ int G2PRec::Process(const float* V5bpm_bpm, const double* V5tp_tr, double * V5re
     fV5bpm_bpm[3] = V5bpm_bpm[3];
     fV5bpm_bpm[4] = V5bpm_bpm[4] / 1000.0;
 
+    fV5bpmave_bpm[0] = V5bpmave_bpm[0] / 1000.0;
+    fV5bpmave_bpm[1] = 0.0;
+    fV5bpmave_bpm[2] = V5bpmave_bpm[2] / 1000.0;
+    fV5bpmave_bpm[3] = 0.0;
+    fV5bpmave_bpm[4] = fV5bpm_bpm[4];
+
+    fRecZ = fV5bpm_bpm[4];
+
     TransBPM2Tr(fV5bpm_bpm, fV5bpm_tr);
+    TransBPM2Tr(fV5bpmave_bpm, fV5bpmave_tr);
 
-    ExtTgtCorr(fV5bpm_tr[0], fV5bpm_tr[2], V5tp_tr, fV5tpmat_tr);
+    ExtTgtCorr(fV5bpmave_tr[0], fV5bpmave_tr[2], V5tp_tr, fV5tpmat_tr);
 
+    /*
     double delta_old = 1e38;
     double xeff_tr = 0, yeff_tr = 0;
-    while (fabs(fV5tpmat_tr[4] - delta_old) > 1.e-3) {
+    while (fabs(fV5tpmat_tr[4] - delta_old) > 1.e-4) {
         delta_old = fV5tpmat_tr[4];
         xeff_tr = GetEffBPM(0);
         yeff_tr = GetEffBPM(1);
         ExtTgtCorr(xeff_tr, yeff_tr, V5tp_tr, fV5tpmat_tr);
-    }
+    }*/
 
-    fV5tpmat_tr[0] = xeff_tr;
-#ifdef USE_BPMY
-    fV5tpmat_tr[2] = yeff_tr;
-#endif
+    double V2[2], V2eff[2];
+    V2[0] = fV5bpmave_tr[0];
+    V2[1] = fV5bpmave_tr[2];
+    GetEffBPM(V2, V2eff);
+    ExtTgtCorr(V2eff[0], V2eff[1], V5tp_tr, fV5tpmat_tr);
+
+    V2[0] = fV5bpm_tr[0];
+    V2[1] = fV5bpm_tr[2];
+    GetEffBPM(V2, V2eff);
+    fV5tpmat_tr[0] = V2eff[0];
+    fV5tpmat_tr[2] = V2eff[1];
 
     if (fDebug > 0) {
         Info(here, "bpm_bpm   : %10.3e %10.3e %10.3e %10.3e %10.3e", fV5bpm_bpm[0], fV5bpm_bpm[1], fV5bpm_bpm[2], fV5bpm_bpm[3], fV5bpm_bpm[4]);
         Info(here, "tpmat_tr  : %10.3e %10.3e %10.3e %10.3e %10.3e", fV5tpmat_tr[0], fV5tpmat_tr[1], fV5tpmat_tr[2], fV5tpmat_tr[3], fV5tpmat_tr[4]);
     }
+
+    for (int i = 0; i < 5; i++) {
+        V5corr_tr[i] = fV5tpmat_tr[i];
+    }
+    V5corr_tr[1] = tan(fV5tpmat_tr[1]);
+    V5corr_tr[3] = tan(fV5tpmat_tr[3]);
 
     Project(fV5tpmat_tr[0], fV5tpmat_tr[2], 0.0, fSieveZ, fV5tpmat_tr[1], fV5tpmat_tr[3], fV5sieveproj_tr[0], fV5sieveproj_tr[2]);
     fV5sieveproj_tr[1] = fV5tpmat_tr[1];
@@ -166,17 +187,6 @@ void G2PRec::SetHRSMomentum(double p)
     }
 }
 
-void G2PRec::SetRecZ(double z)
-{
-    static const char* const here = "Configure()";
-
-    fRecZ = z;
-
-    if (fDebug > 0) {
-        Info(here, "fRecZ\t= %le", fRecZ);
-    }
-}
-
 int G2PRec::Initialize()
 {
     //static const char* const here = "Initialize()";
@@ -188,6 +198,8 @@ void G2PRec::Clear(Option_t* /*option*/)
 {
     memset(fV5bpm_bpm, 0, sizeof (fV5bpm_bpm));
     memset(fV5bpm_tr, 0, sizeof (fV5bpm_tr));
+    memset(fV5bpmave_bpm, 0, sizeof (fV5bpmave_bpm));
+    memset(fV5bpmave_tr, 0, sizeof (fV5bpmave_tr));
     memset(fV5tpmat_tr, 0, sizeof (fV5tpmat_tr));
     memset(fV5sieveproj_tr, 0, sizeof (fV5sieveproj_tr));
     memset(fV5rec_tr, 0, sizeof (fV5rec_tr));
@@ -204,47 +216,33 @@ void G2PRec::TransBPM2Tr(const double* V5_bpm, double* V5_tr)
     double theta = acos(1.0 / pp);
     double phi = atan2(p[1], p[0]);
 
-    double z_tr;
-    HCS2TCS(V5_bpm[0], V5_bpm[2], V5_bpm[4], fHRSAngle, V5_tr[0], V5_tr[2], z_tr);
+    HCS2TCS(V5_bpm[0], V5_bpm[2], V5_bpm[4], fHRSAngle, V5_tr[0], V5_tr[2], V5_tr[4]);
     HCS2TCS(theta, phi, fHRSAngle, V5_tr[1], V5_tr[3]);
-    V5_tr[4] = 0.0;
-    pDrift->Drift(V5_tr, z_tr, fBeamEnergy, fHRSAngle, 0.0, V5_tr);
 
     if (fDebug > 2) {
-        Info(here, "%10.3e %10.3e %10.3e %10.3e -> %10.3e %10.3e %10.3e %10.3e", V5_bpm[0], V5_bpm[1], V5_bpm[2], V5_bpm[3], V5_tr[0], V5_tr[1], V5_tr[2], V5_tr[3]);
+        Info(here, "%10.3e %10.3e %10.3e -> %10.3e %10.3e %10.3e", V5_bpm[0], V5_bpm[2], V5_bpm[4], V5_tr[0], V5_tr[2], V5_tr[4]);
     }
 }
 
-double G2PRec::GetEffBPM(int axis)
+void G2PRec::GetEffBPM(const double* V2_tr, double* V2eff_tr)
 {
     static const char* const here = "GetEffBPM()";
 
-    double xbpm_tr = fV5bpm_tr[0];
-    double ybpm_tr = fV5bpm_tr[2];
-
-    double effbpm_tr;
-    if (axis == 0)
-        effbpm_tr = xbpm_tr;
-    else if (axis == 1)
-        effbpm_tr = ybpm_tr;
-    else return 1e38;
+    V2eff_tr[0] = V2_tr[0];
+    V2eff_tr[1] = V2_tr[1];
 
     if (fFieldRatio > 1e-5) {
         // Fit:
         // (Xbpm_tr-Xeffbpm_tr) vs P
         // ([0]+[1]/x)
         double p = (1 + fV5tpmat_tr[4]) * fHRSMomentum;
-        if (axis == 0)
-            effbpm_tr = xbpm_tr - (fFitPars[0][0] + (fFitPars[0][1] + fFitPars[0][2] * ybpm_tr) / p) / 1000;
-        else if (axis == 1)
-            effbpm_tr = ybpm_tr - (fFitPars[1][0] + (fFitPars[1][1] + fFitPars[1][2] * xbpm_tr) / p) / 1000;
+        V2eff_tr[0] = V2_tr[0] - (fFitPars[0][0] + (fFitPars[0][1] + fFitPars[0][2] * V2_tr[1]) / p) / 1000;
+        V2eff_tr[1] = V2_tr[1] - (fFitPars[1][0] + (fFitPars[1][1] + fFitPars[1][2] * V2_tr[0]) / p) / 1000;
     }
 
     if (fDebug > 1) {
-        Info(here, "effbpm_tr :%10.3e", effbpm_tr);
+        Info(here, "effbpm_tr : %10.3e %10.3e", V2eff_tr[0], V2eff_tr[1]);
     }
-
-    return effbpm_tr;
 }
 
 void G2PRec::ExtTgtCorr(double xbpm, double ybpm, const double* V5tp_tr, double* V5tpcorr_tr)
@@ -253,7 +251,7 @@ void G2PRec::ExtTgtCorr(double xbpm, double ybpm, const double* V5tp_tr, double*
     V5tpcorr_tr[1] = V5tp_tr[1] + fExtTgtCorrT * xbpm;
     V5tpcorr_tr[2] = V5tp_tr[2];
     V5tpcorr_tr[3] = V5tp_tr[3] + fExtTgtCorrP * ybpm;
-    V5tpcorr_tr[4] = V5tp_tr[4] + fExtTgtCorrD * xbpm;
+    V5tpcorr_tr[4] = V5tp_tr[4] + xbpm / fExtTgtCorrD;
 }
 
 int G2PRec::Configure()

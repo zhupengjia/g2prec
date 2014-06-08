@@ -21,11 +21,10 @@ public:
     G2PRec();
     virtual ~G2PRec();
 
-    virtual int Process(const float* V5bpm_bpm, const double* V5tp_tr, double* V5rec_tr, double* V5rec_lab);
+    virtual int Process(const float* V5bpm_bpm, const float* V5bpmave_bpm, const double* V5tp_tr, double* V5corr_tr, double* V5rec_tr, double* V5rec_lab);
 
     void SetBeamEnergy(double e);
     void SetHRSMomentum(double p);
-    void SetRecZ(double z);
 
 protected:
     virtual int Initialize();
@@ -33,7 +32,7 @@ protected:
 
     void TransBPM2Tr(const double* V5_bpm, double* V5_tr);
 
-    double GetEffBPM(int axis);
+    void GetEffBPM(const double* V2_tr, double* V2eff_tr);
     void ExtTgtCorr(double xbpm, double ybpm, const double* V5tp_tr, double* V5tpcorr_tr);
 
     virtual int Configure();
@@ -56,6 +55,9 @@ protected:
 
     double fV5bpm_bpm[5];
     double fV5bpm_tr[5];
+
+    double fV5bpmave_bpm[5];
+    double fV5bpmave_tr[5];
 
     double fV5tpmat_tr[5];
     double fV5sieveproj_tr[5];

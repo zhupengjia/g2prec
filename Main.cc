@@ -35,6 +35,8 @@
 
 #include "G2PRec.hh"
 
+//#define DEBUG
+
 using namespace std;
 using namespace libconfig;
 
@@ -153,7 +155,8 @@ int Insert(int run)
 
         TTree *t = (TTree *) f->Get("T");
 
-        float fV5bpm_bpm[5];
+        float fV5bpm_bpm[5] = {0.0, 0.0, 0.0, 0.0, 0.0};
+        float fV5bpmave_bpm[5] = {0.0, 0.0, 0.0, 0.0, 0.0};
         int fBPMAvail;
         double fV5tp_tr[5];
         THaEvent *event = new THaEvent();
@@ -161,20 +164,38 @@ int Insert(int run)
         t->SetBranchAddress("Event_Branch", &event);
 
         if (t->FindBranch(Form("%srb.tgt_m13_x", arm))) {
-            gRec->SetRecZ(-13.6271e-3);
+            t->SetBranchAddress(Form("%srb.tgt_m13_x", arm), &fV5bpm_bpm[0]);
+            t->SetBranchAddress(Form("%srb.tgt_m13_theta", arm), &fV5bpm_bpm[1]);
+            t->SetBranchAddress(Form("%srb.tgt_m13_y", arm), &fV5bpm_bpm[2]);
+            t->SetBranchAddress(Form("%srb.tgt_m13_phi", arm), &fV5bpm_bpm[3]);
+            t->SetBranchAddress(Form("%srb.tgtave_m13_x", arm), &fV5bpmave_bpm[0]);
+            t->SetBranchAddress(Form("%srb.tgtave_m13_y", arm), &fV5bpmave_bpm[2]);
+            fV5bpm_bpm[4] = -13.6271;
         } else if (t->FindBranch(Form("%srb.tgt_m12_x", arm))) {
-            gRec->SetRecZ(-12.5476e-3);
+            t->SetBranchAddress(Form("%srb.tgt_m12_x", arm), &fV5bpm_bpm[0]);
+            t->SetBranchAddress(Form("%srb.tgt_m12_theta", arm), &fV5bpm_bpm[1]);
+            t->SetBranchAddress(Form("%srb.tgt_m12_y", arm), &fV5bpm_bpm[2]);
+            t->SetBranchAddress(Form("%srb.tgt_m12_phi", arm), &fV5bpm_bpm[3]);
+            t->SetBranchAddress(Form("%srb.tgtave_m12_x", arm), &fV5bpmave_bpm[0]);
+            t->SetBranchAddress(Form("%srb.tgtave_m12_y", arm), &fV5bpmave_bpm[2]);
+            fV5bpm_bpm[4] = -12.5476;
         } else if (t->FindBranch(Form("%srb.tgt_m10_x", arm))) {
-            gRec->SetRecZ(-10.81e-3);
+            t->SetBranchAddress(Form("%srb.tgt_m10_x", arm), &fV5bpm_bpm[0]);
+            t->SetBranchAddress(Form("%srb.tgt_m10_theta", arm), &fV5bpm_bpm[1]);
+            t->SetBranchAddress(Form("%srb.tgt_m10_y", arm), &fV5bpm_bpm[2]);
+            t->SetBranchAddress(Form("%srb.tgt_m10_phi", arm), &fV5bpm_bpm[3]);
+            t->SetBranchAddress(Form("%srb.tgtave_m10_x", arm), &fV5bpmave_bpm[0]);
+            t->SetBranchAddress(Form("%srb.tgtave_m10_y", arm), &fV5bpmave_bpm[2]);
+            fV5bpm_bpm[4] = -10.81;
         } else {
-            gRec->SetRecZ(0.0);
+            t->SetBranchAddress(Form("%srb.tgt_0_x", arm), &fV5bpm_bpm[0]);
+            t->SetBranchAddress(Form("%srb.tgt_0_theta", arm), &fV5bpm_bpm[1]);
+            t->SetBranchAddress(Form("%srb.tgt_0_y", arm), &fV5bpm_bpm[2]);
+            t->SetBranchAddress(Form("%srb.tgt_0_phi", arm), &fV5bpm_bpm[3]);
+            t->SetBranchAddress(Form("%srb.tgtave_0_x", arm), &fV5bpmave_bpm[0]);
+            t->SetBranchAddress(Form("%srb.tgtave_0_y", arm), &fV5bpmave_bpm[2]);
+            fV5bpm_bpm[4] = 0.0;
         }
-
-        t->SetBranchAddress(Form("%srb.tgt_0_x", arm), &fV5bpm_bpm[0]);
-        t->SetBranchAddress(Form("%srb.tgt_0_theta", arm), &fV5bpm_bpm[1]);
-        t->SetBranchAddress(Form("%srb.tgt_0_y", arm), &fV5bpm_bpm[2]);
-        t->SetBranchAddress(Form("%srb.tgt_0_phi", arm), &fV5bpm_bpm[3]);
-        fV5bpm_bpm[4] = 0.0;
 
         t->SetBranchAddress(Form("%srb.bpmavail", arm), &fBPMAvail);
 
@@ -186,6 +207,7 @@ int Insert(int run)
 
         double fV5rec_tr[5];
         double fV5rec_lab[5];
+        double fV5corr_tr[5];
 
         TList newBranch;
 
@@ -200,6 +222,14 @@ int Insert(int run)
         newBranch.Add(t->Branch(Form("%s.rec.l_y", arm), &fV5rec_lab[2], Form("%s.rec.l_y/D", arm)));
         newBranch.Add(t->Branch(Form("%s.rec.l_ph", arm), &fV5rec_lab[3], Form("%s.rec.l_ph/D", arm)));
         newBranch.Add(t->Branch(Form("%s.rec.l_z", arm), &fV5rec_lab[4], Form("%s.rec.l_z/D", arm)));
+
+#ifdef DEBUG
+        newBranch.Add(t->Branch(Form("%s.corr.x", arm), &fV5corr_tr[0], Form("%s.corr.x/D", arm)));
+        newBranch.Add(t->Branch(Form("%s.corr.th", arm), &fV5corr_tr[1], Form("%s.corr.th/D", arm)));
+        newBranch.Add(t->Branch(Form("%s.corr.y", arm), &fV5corr_tr[2], Form("%s.corr.y/D", arm)));
+        newBranch.Add(t->Branch(Form("%s.corr.ph", arm), &fV5corr_tr[3], Form("%s.corr.ph/D", arm)));
+        newBranch.Add(t->Branch(Form("%s.corr.dp", arm), &fV5corr_tr[4], Form("%s.corr.dp/D", arm)));
+#endif
 
         int N = t->GetEntries();
         int evnum;
@@ -219,7 +249,7 @@ int Insert(int run)
                     fV5rec_lab[i] = 1e+38;
                 }
             } else {
-                gRec->Process(fV5bpm_bpm, fV5tp_tr, fV5rec_tr, fV5rec_lab);
+                gRec->Process(fV5bpm_bpm, fV5bpmave_bpm, fV5tp_tr, fV5corr_tr, fV5rec_tr, fV5rec_lab);
             }
             next.Reset();
             while (TBranch * br = (TBranch*) next()) {
