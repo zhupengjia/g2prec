@@ -31,7 +31,7 @@ using namespace libconfig;
 static const double kDEG = 3.14159265358979323846 / 180.0;
 
 G2PRec::G2PRec() :
-fBeamEnergy(2.254), fHRSAngle(5.767 * kDEG), fHRSMomentum(2.254), fFieldRatio(0.0), fSieveZ(800.0), fRecZ(0.0), fExtTgtCorrT(0.0), fExtTgtCorrP(0.0), fExtTgtCorrD(0.0)
+fBeamEnergy(2.254), fHRSAngle(5.767 * kDEG), fHRSMomentum(2.254), fFieldRatio(0.0), fSieveZ(800.0), fRecZ(0.0), fExtTgtCorrT(0.0), fExtTgtCorrP(0.0), fExtTgtCorrD(1e36)
 {
     // Constructor
 
