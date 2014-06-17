@@ -142,6 +142,8 @@ int Insert(int run)
 
     int fDebug;
     gConfig->lookupValue("debug", fDebug);
+    int fFlag = 0;
+    gConfig->lookupValue("gep", fFlag);
 
     const char* arm = "R";
     if (run < 20000) arm = "L";
@@ -163,41 +165,44 @@ int Insert(int run)
 
         t->SetBranchAddress("Event_Branch", &event);
 
-        if (t->FindBranch(Form("%srb.tgt_m13_x", arm))) {
-            t->SetBranchAddress(Form("%srb.tgt_m13_x", arm), &fV5bpm_bpm[0]);
-            t->SetBranchAddress(Form("%srb.tgt_m13_theta", arm), &fV5bpm_bpm[1]);
-            t->SetBranchAddress(Form("%srb.tgt_m13_y", arm), &fV5bpm_bpm[2]);
-            t->SetBranchAddress(Form("%srb.tgt_m13_phi", arm), &fV5bpm_bpm[3]);
-            t->SetBranchAddress(Form("%srb.tgtave_m13_x", arm), &fV5bpmave_bpm[0]);
-            t->SetBranchAddress(Form("%srb.tgtave_m13_y", arm), &fV5bpmave_bpm[2]);
-            fV5bpm_bpm[4] = -13.6271;
-        } else if (t->FindBranch(Form("%srb.tgt_m12_x", arm))) {
-            t->SetBranchAddress(Form("%srb.tgt_m12_x", arm), &fV5bpm_bpm[0]);
-            t->SetBranchAddress(Form("%srb.tgt_m12_theta", arm), &fV5bpm_bpm[1]);
-            t->SetBranchAddress(Form("%srb.tgt_m12_y", arm), &fV5bpm_bpm[2]);
-            t->SetBranchAddress(Form("%srb.tgt_m12_phi", arm), &fV5bpm_bpm[3]);
-            t->SetBranchAddress(Form("%srb.tgtave_m12_x", arm), &fV5bpmave_bpm[0]);
-            t->SetBranchAddress(Form("%srb.tgtave_m12_y", arm), &fV5bpmave_bpm[2]);
-            fV5bpm_bpm[4] = -12.5476;
-        } else if (t->FindBranch(Form("%srb.tgt_m10_x", arm))) {
-            t->SetBranchAddress(Form("%srb.tgt_m10_x", arm), &fV5bpm_bpm[0]);
-            t->SetBranchAddress(Form("%srb.tgt_m10_theta", arm), &fV5bpm_bpm[1]);
-            t->SetBranchAddress(Form("%srb.tgt_m10_y", arm), &fV5bpm_bpm[2]);
-            t->SetBranchAddress(Form("%srb.tgt_m10_phi", arm), &fV5bpm_bpm[3]);
-            t->SetBranchAddress(Form("%srb.tgtave_m10_x", arm), &fV5bpmave_bpm[0]);
-            t->SetBranchAddress(Form("%srb.tgtave_m10_y", arm), &fV5bpmave_bpm[2]);
-            fV5bpm_bpm[4] = -10.81;
-        } else {
-            t->SetBranchAddress(Form("%srb.tgt_0_x", arm), &fV5bpm_bpm[0]);
-            t->SetBranchAddress(Form("%srb.tgt_0_theta", arm), &fV5bpm_bpm[1]);
-            t->SetBranchAddress(Form("%srb.tgt_0_y", arm), &fV5bpm_bpm[2]);
-            t->SetBranchAddress(Form("%srb.tgt_0_phi", arm), &fV5bpm_bpm[3]);
-            t->SetBranchAddress(Form("%srb.tgtave_0_x", arm), &fV5bpmave_bpm[0]);
-            t->SetBranchAddress(Form("%srb.tgtave_0_y", arm), &fV5bpmave_bpm[2]);
-            fV5bpm_bpm[4] = 0.0;
+        if (fFlag == 0) {
+            if (t->FindBranch(Form("%srb.tgt_m13_x", arm))) {
+                t->SetBranchAddress(Form("%srb.tgt_m13_x", arm), &fV5bpm_bpm[0]);
+                t->SetBranchAddress(Form("%srb.tgt_m13_theta", arm), &fV5bpm_bpm[1]);
+                t->SetBranchAddress(Form("%srb.tgt_m13_y", arm), &fV5bpm_bpm[2]);
+                t->SetBranchAddress(Form("%srb.tgt_m13_phi", arm), &fV5bpm_bpm[3]);
+                t->SetBranchAddress(Form("%srb.tgtave_m13_x", arm), &fV5bpmave_bpm[0]);
+                t->SetBranchAddress(Form("%srb.tgtave_m13_y", arm), &fV5bpmave_bpm[2]);
+                fV5bpm_bpm[4] = -13.6271;
+            } else if (t->FindBranch(Form("%srb.tgt_m12_x", arm))) {
+                t->SetBranchAddress(Form("%srb.tgt_m12_x", arm), &fV5bpm_bpm[0]);
+                t->SetBranchAddress(Form("%srb.tgt_m12_theta", arm), &fV5bpm_bpm[1]);
+                t->SetBranchAddress(Form("%srb.tgt_m12_y", arm), &fV5bpm_bpm[2]);
+                t->SetBranchAddress(Form("%srb.tgt_m12_phi", arm), &fV5bpm_bpm[3]);
+                t->SetBranchAddress(Form("%srb.tgtave_m12_x", arm), &fV5bpmave_bpm[0]);
+                t->SetBranchAddress(Form("%srb.tgtave_m12_y", arm), &fV5bpmave_bpm[2]);
+                fV5bpm_bpm[4] = -12.5476;
+            } else if (t->FindBranch(Form("%srb.tgt_m10_x", arm))) {
+                t->SetBranchAddress(Form("%srb.tgt_m10_x", arm), &fV5bpm_bpm[0]);
+                t->SetBranchAddress(Form("%srb.tgt_m10_theta", arm), &fV5bpm_bpm[1]);
+                t->SetBranchAddress(Form("%srb.tgt_m10_y", arm), &fV5bpm_bpm[2]);
+                t->SetBranchAddress(Form("%srb.tgt_m10_phi", arm), &fV5bpm_bpm[3]);
+                t->SetBranchAddress(Form("%srb.tgtave_m10_x", arm), &fV5bpmave_bpm[0]);
+                t->SetBranchAddress(Form("%srb.tgtave_m10_y", arm), &fV5bpmave_bpm[2]);
+                fV5bpm_bpm[4] = -10.81;
+            } else {
+                t->SetBranchAddress(Form("%srb.tgt_0_x", arm), &fV5bpm_bpm[0]);
+                t->SetBranchAddress(Form("%srb.tgt_0_theta", arm), &fV5bpm_bpm[1]);
+                t->SetBranchAddress(Form("%srb.tgt_0_y", arm), &fV5bpm_bpm[2]);
+                t->SetBranchAddress(Form("%srb.tgt_0_phi", arm), &fV5bpm_bpm[3]);
+                t->SetBranchAddress(Form("%srb.tgtave_0_x", arm), &fV5bpmave_bpm[0]);
+                t->SetBranchAddress(Form("%srb.tgtave_0_y", arm), &fV5bpmave_bpm[2]);
+                fV5bpm_bpm[4] = 0.0;
+            }
+            t->SetBranchAddress(Form("%srb.bpmavail", arm), &fBPMAvail);
+        } else if (fFlag == 1) {
+            fBPMAvail = 1;
         }
-
-        t->SetBranchAddress(Form("%srb.bpmavail", arm), &fBPMAvail);
 
         t->SetBranchAddress(Form("%s.gold.x", arm), &fV5tp_tr[0]);
         t->SetBranchAddress(Form("%s.gold.th", arm), &fV5tp_tr[1]);
