@@ -121,7 +121,7 @@ int Configure(int run)
     double e = 0.0, p = 0.0;
     bool found = false;
     while (!feof(fp)) {
-        fscanf(fp, "%d%le%le", &id, &e, &p);
+        fscanf(fp, "%d%le%le", &id, &p, &e);
         if (id == run) {
             gRec->SetBeamEnergy(e);
             gRec->SetHRSMomentum(p);
