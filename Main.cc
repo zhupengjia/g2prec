@@ -159,7 +159,7 @@ int Insert(int run)
 
         float fV5bpm_bpm[5] = {0.0, 0.0, 0.0, 0.0, 0.0};
         float fV5bpmave_bpm[5] = {0.0, 0.0, 0.0, 0.0, 0.0};
-        int fBPMAvail;
+        int fBPMAvail = 0;
         double fV5tp_tr[5];
         THaEvent *event = new THaEvent();
 
